@@ -23,7 +23,7 @@ export class ProductListingPage {
 
   constructor(private readonly page: Page) {
     this.nav = new NavBar(page);
-    this.productCards = page.getByTestId(/^product-[0-9A-Z]{26}$/);
+    this.productCards = page.getByTestId(/^product-[0-9A-Za-z]{26}$/);
     this.productNames = this.productCards.getByTestId('product-name');
     this.productPrices = this.productCards.getByTestId('product-price');
     this.searchBox = page.getByRole('textbox', { name: 'Search' });

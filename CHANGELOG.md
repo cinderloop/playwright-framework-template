@@ -8,6 +8,17 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `src/core/api`: `BaseApiClient` over `APIRequestContext` with bearer-token handling, status
+  checks and Zod response parsing; raw `*Response` methods for negative tests.
+- `src/core/matchers`: async `toMatchSchema` matcher for values and `APIResponse` bodies.
+- `src/core/data` and `CleanupQueue`: factory helper and LIFO teardown that always runs.
+- Toolshop API clients and Zod schemas for auth, users, products, images, categories, brands,
+  carts, invoices and postcode lookup.
+- `testData` fixture: Faker-built entities created via the API and deleted after each test;
+  order-referenced data is retained and annotated.
+- 30 API tests (`api` project, no browser) and 4 hybrid e2e tests, including a full checkout.
+- Checkout and invoices page objects; `signInWithToken` for customers created by a test.
+
 - `pr.yml`: lint, format, typecheck and boundary checks plus `@smoke` tests against Toolshop in
   Docker Compose on every pull request and push to `main`.
 - `nightly.yml`: scheduled and manual full suite across all browsers in 4 shards, blob reports
@@ -17,6 +28,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- Local and CI Toolshop use a pinned Redis cache, fixing intermittent 401s under parallel load.
+- PR smoke runs include the `api` project.
 - Toolshop images are pinned by digest. The API is fronted by the official multi-arch nginx
   image with a repo-owned config, replacing the arm64-only upstream `web` image.
 - `typecheck:core` split out of `typecheck`; `toolshop:up` waits up to 5 minutes for health.

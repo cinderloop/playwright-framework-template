@@ -4,8 +4,9 @@ import { config } from '@app/config';
 const isCI = !!process.env.CI;
 
 // Browser projects run only after the API/UI health check and the per-role
-// login have succeeded.
+// login have succeeded. API tests run once, without a browser.
 const setupDependencies = ['setup'];
+const browserTests = { testIgnore: '**/tests/api/**', dependencies: setupDependencies };
 
 export default defineConfig({
   testDir: './tests',
@@ -34,26 +35,27 @@ export default defineConfig({
   projects: [
     { name: 'health', testMatch: /health\.setup\.ts/ },
     { name: 'setup', testMatch: /auth\.setup\.ts/, dependencies: ['health'] },
+    { name: 'api', testDir: './tests/api', dependencies: ['health'] },
 
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      dependencies: setupDependencies,
+      ...browserTests,
     },
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
-      dependencies: setupDependencies,
+      ...browserTests,
     },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      dependencies: setupDependencies,
+      ...browserTests,
     },
     {
       name: 'mobile-chrome',
       use: { ...devices['Pixel 7'] },
-      dependencies: setupDependencies,
+      ...browserTests,
     },
   ],
 });
