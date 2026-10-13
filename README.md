@@ -1,11 +1,20 @@
 # Playwright Toolshop Framework
 
+<!-- Replace OWNER/REPO with the GitHub repository path once it is pushed. -->
+
+[![PR checks](https://github.com/OWNER/REPO/actions/workflows/pr.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/pr.yml)
+[![Nightly](https://github.com/OWNER/REPO/actions/workflows/nightly.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/nightly.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Playwright](https://img.shields.io/badge/Playwright-1.64.0-2EAD33?logo=playwright)](https://playwright.dev)
+
+**Latest nightly report:** https://OWNER.github.io/REPO/
+
 A production-grade Playwright + TypeScript test automation framework, demonstrated against
 [Practice Software Testing (Toolshop)](https://practicesoftwaretesting.com) and designed to be
 reused as a template for other applications.
 
-> Work in progress. Phase 1 (foundation) is complete; CI, API/hybrid tests, accessibility,
-> visual regression and full documentation follow. See [docs/build_plan.md](docs/build_plan.md).
+> Work in progress. Phases 1 (foundation) and 2 (CI/CD and reporting) are complete;
+> API/hybrid tests, accessibility, visual regression and full documentation follow. See [docs/build_plan.md](docs/build_plan.md).
 
 ## Quick start
 
@@ -29,6 +38,27 @@ which case point `CUSTOMER_EMAIL` at another seeded account.
 `@playwright/test`) and runs the suite against the local Toolshop over host networking. This is
 also the way to run WebKit on hosts where the native WebKit build is unsupported.
 
+## Continuous integration
+
+| Workflow                                 | Trigger                      | What it does                                                                                                                                 |
+| ---------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| [PR checks](.github/workflows/pr.yml)    | pull request, push to `main` | Lint, format, typecheck and the core/app boundary check; `@smoke` tests on Chromium and Pixel 7 against Toolshop started with Docker Compose |
+| [Nightly](.github/workflows/nightly.yml) | 02:00 UTC daily, manual      | Full suite on every browser in 4 shards, blob reports merged into one HTML report and published to GitHub Pages                              |
+
+Both workflows start Toolshop from `docker-compose.yml`, wait for every service to be healthy,
+seed the database, run the tests and tear the stack down. The HTML report is uploaded as an
+artifact on every run and `test-results/` (traces, screenshots, videos) on failure. npm
+packages and Playwright browsers are cached; a newer run on the same branch or PR cancels the
+older one. Third-party actions are pinned to commit SHAs.
+
+One-time repository setup:
+
+1. **Secrets** (Settings → Secrets and variables → Actions): `CUSTOMER_EMAIL`,
+   `CUSTOMER_PASSWORD`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`. Pull requests from forks do not
+   receive secrets, so their smoke job fails at config validation; the static job still runs.
+2. **Pages** (Settings → Pages): set Source to **GitHub Actions**. The report is published from
+   `main` only.
+
 ## Project structure
 
 ```
@@ -43,19 +73,19 @@ tests/      setup projects (health check, per-role auth) and specs
 
 ## Scripts
 
-| Script                            | Purpose                                                 |
-| --------------------------------- | ------------------------------------------------------- |
-| `npm test`                        | Full suite, all browser projects                        |
-| `npm run test:smoke`              | `@smoke` tests only                                     |
-| `npm run test:ui` / `test:headed` | Playwright UI mode / headed run                         |
-| `npm run test:docker`             | Suite inside the official Playwright image              |
-| `npm run report`                  | Open the last HTML report                               |
-| `npm run lint` / `lint:boundary`  | ESLint (zero warnings) / core-only boundary check       |
-| `npm run typecheck`               | `tsc` for the whole repo and for `src/core` alone       |
-| `npm run format` / `format:check` | Prettier                                                |
-| `npm run toolshop:start`          | Start Toolshop and seed it (`up` + `seed`)              |
-| `npm run toolshop:seed`           | Reset Toolshop data: `php artisan migrate:fresh --seed` |
-| `npm run toolshop:down`           | Stop Toolshop and delete its volumes                    |
+| Script                                 | Purpose                                                 |
+| -------------------------------------- | ------------------------------------------------------- |
+| `npm test`                             | Full suite, all browser projects                        |
+| `npm run test:smoke`                   | `@smoke` tests only                                     |
+| `npm run test:ui` / `test:headed`      | Playwright UI mode / headed run                         |
+| `npm run test:docker`                  | Suite inside the official Playwright image              |
+| `npm run report`                       | Open the last HTML report                               |
+| `npm run lint` / `lint:boundary`       | ESLint (zero warnings) / core-only boundary check       |
+| `npm run typecheck` / `typecheck:core` | `tsc` for the whole repo / for `src/core` alone         |
+| `npm run format` / `format:check`      | Prettier                                                |
+| `npm run toolshop:start`               | Start Toolshop and seed it (`up` + `seed`)              |
+| `npm run toolshop:seed`                | Reset Toolshop data: `php artisan migrate:fresh --seed` |
+| `npm run toolshop:down`                | Stop Toolshop and delete its volumes                    |
 
 ## Environment variables
 

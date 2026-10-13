@@ -17,15 +17,16 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "lint:boundary": "eslint src/core --max-warnings 0",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.core.json",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "toolshop:up": "docker compose up -d --wait",
+    "toolshop:up": "docker compose up -d --wait --wait-timeout 300",
     "toolshop:seed": "docker compose exec -T laravel-api php artisan migrate:fresh --seed --force",
     "toolshop:down": "docker compose down -v",
     "prepare": "husky",
     "test:docker": "docker build -t toolshop-tests . && docker run --rm --network host --env-file .env toolshop-tests",
-    "toolshop:start": "npm run toolshop:up && npm run toolshop:seed"
+    "toolshop:start": "npm run toolshop:up && npm run toolshop:seed",
+    "typecheck:core": "tsc --noEmit -p tsconfig.core.json"
   },
   "lint-staged": {
     "*.{ts,js,mjs}": [

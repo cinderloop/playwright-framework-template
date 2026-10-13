@@ -1,4 +1,4 @@
-# Brings up Practice Software Testing (Toolshop) from its prebuilt images.
+# Brings up Practice Software Testing (Toolshop) for local and CI test runs.
 # Based on the upstream docker-compose.prod.yml:
 # https://github.com/testsmith-io/practice-software-testing
 #
@@ -9,11 +9,15 @@
 #
 # UI:  http://localhost:4200
 # API: http://localhost:8091
+#
+# Images are pinned by digest so every run tests the same Toolshop build.
+# Upstream publishes only `latest`; bump the digests deliberately.
 name: toolshop
 
 services:
   laravel-api:
-    image: testsmith/practice-software-testing-${TOOLSHOP_SPRINT:-sprint5}-api
+    # Sprint 5 API, linux/amd64 only (runs under emulation on Apple Silicon).
+    image: testsmith/practice-software-testing-sprint5-api@sha256:881cb7ecd76477994728648c0c16f6e9d2beed0f0217734843a32a7bb92553f0
     environment:
       - PHP_OPCACHE_VALIDATE_TIMESTAMPS=1
       - DB_PORT=3306
@@ -27,7 +31,8 @@ services:
         condition: service_healthy
 
   angular-ui:
-    image: testsmith/practice-software-testing-${TOOLSHOP_SPRINT:-sprint5}-ui
+    # Sprint 5 UI, linux/amd64 only.
+    image: testsmith/practice-software-testing-sprint5-ui@sha256:f907d8daae32dc90ba900e964928d00bf0aabfab7067eaeeaa49f5a0f70c52e6
     ports:
       - '4200:4200'
     command: bash -c "ng serve --host 0.0.0.0 --port 4200"
@@ -46,9 +51,12 @@ services:
       start_period: 30s
 
   web:
-    image: testsmith/practice-software-testing-web
+    image: nginx:1.30-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
     ports:
       - '8091:80'
+    volumes:
+      - ./docker/nginx/toolshop-api.conf:/etc/nginx/conf.d/default.conf:ro
+      - laravel-app-code:/var/www:ro
     depends_on:
       - laravel-api
     healthcheck:
@@ -58,7 +66,7 @@ services:
       retries: 40
 
   mariadb:
-    image: yobasystems/alpine-mariadb:10.6.11
+    image: yobasystems/alpine-mariadb:10.6.11@sha256:8bb25ca2d68c81118fcf745959560de2f316a178abf9decc8bb5b6f86c929084
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_USER: user

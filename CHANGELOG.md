@@ -8,6 +8,19 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `pr.yml`: lint, format, typecheck and boundary checks plus `@smoke` tests against Toolshop in
+  Docker Compose on every pull request and push to `main`.
+- `nightly.yml`: scheduled and manual full suite across all browsers in 4 shards, blob reports
+  merged with `playwright merge-reports` and published to GitHub Pages.
+- Composite actions for Node/Playwright setup (npm and browser caching) and starting Toolshop.
+- Blob reporter in CI; traces, screenshots and videos uploaded on failure.
+
+### Changed
+
+- Toolshop images are pinned by digest. The API is fronted by the official multi-arch nginx
+  image with a repo-owned config, replacing the arm64-only upstream `web` image.
+- `typecheck:core` split out of `typecheck`; `toolshop:up` waits up to 5 minutes for health.
+
 - Project scaffold: TypeScript (strict), path aliases `@core/*` and `@app/*`, ESLint with
   `eslint-plugin-playwright` and a lint-enforced core/app boundary, Prettier, Husky + lint-staged.
 - Zod-validated configuration selected by `TEST_ENV` (`local`, `public`) that fails fast.

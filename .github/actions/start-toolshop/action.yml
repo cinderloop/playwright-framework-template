@@ -1,0 +1,16 @@
+name: Start Toolshop
+description: >
+  Starts Toolshop with Docker Compose, waits for every service to report
+  healthy, then resets and seeds the database. Pair with a teardown step that
+  runs `npm run toolshop:down` under `if: always()`.
+
+runs:
+  using: composite
+  steps:
+    - name: Start containers and wait for health
+      shell: bash
+      run: npm run toolshop:up
+
+    - name: Seed database
+      shell: bash
+      run: npm run toolshop:seed

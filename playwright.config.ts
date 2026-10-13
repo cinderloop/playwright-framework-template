@@ -15,8 +15,9 @@ export default defineConfig({
   ...(isCI ? { workers: 2 } : {}),
   timeout: 30_000,
   expect: { timeout: 10_000 },
+  // CI writes a blob report as well, so sharded runs can be merged into one HTML report.
   reporter: isCI
-    ? [['github'], ['html', { open: 'never' }], ['list']]
+    ? [['github'], ['list'], ['html', { open: 'never' }], ['blob']]
     : [['html', { open: 'never' }], ['list']],
 
   use: {
