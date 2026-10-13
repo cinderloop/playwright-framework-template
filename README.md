@@ -1,13 +1,11 @@
 # Playwright Toolshop Framework
 
-<!-- Replace OWNER/REPO with the GitHub repository path once it is pushed. -->
-
-[![PR checks](https://github.com/OWNER/REPO/actions/workflows/pr.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/pr.yml)
-[![Nightly](https://github.com/OWNER/REPO/actions/workflows/nightly.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/nightly.yml)
+[![PR checks](https://github.com/cinderloop/playwright-framework-template/actions/workflows/pr.yml/badge.svg)](https://github.com/cinderloop/playwright-framework-template/actions/workflows/pr.yml)
+[![Nightly](https://github.com/cinderloop/playwright-framework-template/actions/workflows/nightly.yml/badge.svg)](https://github.com/cinderloop/playwright-framework-template/actions/workflows/nightly.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Playwright](https://img.shields.io/badge/Playwright-1.64.0-2EAD33?logo=playwright)](https://playwright.dev)
 
-**Latest nightly report:** https://OWNER.github.io/REPO/
+**Latest nightly report:** https://cinderloop.github.io/playwright-framework-template/
 
 A production-grade Playwright + TypeScript test automation framework, demonstrated against
 [Practice Software Testing (Toolshop)](https://practicesoftwaretesting.com) and designed to be
