@@ -1,0 +1,53 @@
+{
+  "name": "playwright-toolshop-framework",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Production-grade Playwright + TypeScript test automation framework, demonstrated against Practice Software Testing (Toolshop).",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "lint:boundary": "eslint src/core --max-warnings 0",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.core.json",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "toolshop:up": "docker compose up -d --wait",
+    "toolshop:seed": "docker compose exec -T laravel-api php artisan migrate:fresh --seed --force",
+    "toolshop:down": "docker compose down -v",
+    "prepare": "husky",
+    "test:docker": "docker build -t toolshop-tests . && docker run --rm --network host --env-file .env toolshop-tests",
+    "toolshop:start": "npm run toolshop:up && npm run toolshop:seed"
+  },
+  "lint-staged": {
+    "*.{ts,js,mjs}": [
+      "eslint --max-warnings 0 --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": "prettier --write"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^24.19.2",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import-x": "^4.17.1",
+    "eslint-plugin-playwright": "^2.12.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "zod": "^4.6.7"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  // Compiles src/core on its own. Proves the reusable layer has no dependency on
+  // the Toolshop-specific code in src/app or on the tests.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@core/*": ["./src/core/*"]
+    }
+  },
+  "include": ["./src/core"]
+}
