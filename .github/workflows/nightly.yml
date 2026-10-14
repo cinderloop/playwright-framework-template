@@ -38,9 +38,12 @@ jobs:
 
       - uses: ./.github/actions/start-toolshop
 
-      # Visual tests run in the Playwright image (job below), not on the runner.
+      # Visual tests run in the Playwright image and quarantined tests in their own
+      # non-blocking job (both below), not in the shards.
       - name: Run tests
-        run: npx playwright test --grep-invert @visual --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+        run: >-
+          npx playwright test --grep-invert "@visual|@quarantine"
+          --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - name: Upload blob report
         if: ${{ !cancelled() }}
@@ -121,9 +124,48 @@ jobs:
         if: always()
         run: npm run toolshop:down
 
+  quarantine:
+    name: Quarantined tests (non-blocking)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Results are tracked in the report and job summary; failures do not fail the run.
+    continue-on-error: true
+    env:
+      TEST_ENV: local
+      CUSTOMER_EMAIL: ${{ secrets.CUSTOMER_EMAIL }}
+      CUSTOMER_PASSWORD: ${{ secrets.CUSTOMER_PASSWORD }}
+      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-test-env
+        with:
+          browsers: chromium firefox webkit
+
+      - uses: ./.github/actions/start-toolshop
+
+      - name: Run @quarantine tests
+        run: npx playwright test --grep @quarantine --grep-invert @visual --pass-with-no-tests
+
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: blob-report-quarantine
+          path: blob-report/
+          retention-days: 3
+          if-no-files-found: ignore
+
+      - name: Stop Toolshop
+        if: always()
+        run: npm run toolshop:down
+
   report:
     name: Merge reports
-    needs: [test, visual]
+    needs: [test, visual, quarantine]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -142,8 +184,9 @@ jobs:
           merge-multiple: true
 
       - name: Merge into one HTML report
-        # merge.config.ts reconciles test paths from the runner and the Docker image.
-        run: npx playwright merge-reports -c merge.config.ts --reporter html ./all-blob-reports
+        # merge.config.ts reconciles test paths from the runner and the Docker image,
+        # and adds the flaky/quarantine summary to this job's summary page.
+        run: npx playwright merge-reports -c merge.config.ts ./all-blob-reports
 
       - name: Upload HTML report
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

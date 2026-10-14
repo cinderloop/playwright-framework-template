@@ -4,6 +4,7 @@ import {
   AdminDashboardPage,
   CartPage,
   CheckoutPage,
+  ContactPage,
   InvoicesPage,
   LoginPage,
   ProductDetailPage,
@@ -15,6 +16,7 @@ export interface PageFixtures {
   productDetailPage: ProductDetailPage;
   cartPage: CartPage;
   checkoutPage: CheckoutPage;
+  contactPage: ContactPage;
   invoicesPage: InvoicesPage;
   loginPage: LoginPage;
   accountPage: AccountPage;
@@ -33,6 +35,9 @@ export const pagesTest = base.extend<PageFixtures>({
   },
   checkoutPage: async ({ page }, use) => {
     await use(new CheckoutPage(page));
+  },
+  contactPage: async ({ page }, use) => {
+    await use(new ContactPage(page));
   },
   invoicesPage: async ({ page }, use) => {
     await use(new InvoicesPage(page));

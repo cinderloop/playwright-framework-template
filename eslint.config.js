@@ -13,7 +13,16 @@ const XPATH_MESSAGE =
 
 export default defineConfig(
   {
-    ignores: ['node_modules/', 'playwright-report/', 'test-results/', 'blob-report/', '.auth/'],
+    ignores: [
+      'node_modules/',
+      'playwright-report/',
+      'test-results/',
+      'blob-report/',
+      '.auth/',
+      'allure-results/',
+      'allure-report/',
+      '.playwright-mcp/',
+    ],
   },
 
   eslint.configs.recommended,

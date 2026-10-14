@@ -1,0 +1,42 @@
+name: Flaky test
+description: A test that passed on retry or was quarantined. See docs/flaky-tests.md.
+title: 'Flaky: <test title>'
+labels: [flaky]
+body:
+  - type: input
+    id: test
+    attributes:
+      label: Test
+      description: File, line and title, as in the "Test stability" job summary.
+      placeholder: tests/ui/cart/cart.spec.ts:12 › Cart › ...
+    validations:
+      required: true
+  - type: input
+    id: projects
+    attributes:
+      label: Projects
+      placeholder: chromium, webkit
+    validations:
+      required: true
+  - type: textarea
+    id: runs
+    attributes:
+      label: Runs
+      description: Links to the nightly or PR runs where it was flaky or failed, newest first.
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Error and trace
+      description: The failing assertion and what the trace from the failed attempt shows.
+      render: text
+  - type: dropdown
+    id: status
+    attributes:
+      label: Status
+      options:
+        - Investigating (not quarantined)
+        - Quarantined with @quarantine
+    validations:
+      required: true

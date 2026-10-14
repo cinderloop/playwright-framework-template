@@ -1,14 +1,19 @@
 import { defineConfig, devices } from '@playwright/test';
+import { flakySummaryReporter } from '@core/reporting';
 import { config } from '@app/config';
 
 const isCI = !!process.env.CI;
+// Set by .mcp.json for the Playwright test agents; adds their seed project.
+const forAgents = !!process.env.PW_AGENTS;
+// Allure results are opt-in (ALLURE=1) so everyday runs only write the HTML report.
+const withAllure = !!process.env.ALLURE;
 
 // Browser projects run only after the API/UI health check and the per-role
 // login have succeeded. API tests run once, without a browser.
 const setupDependencies = ['setup'];
 // API, accessibility and visual tests have dedicated projects below.
 const browserTests = {
-  testIgnore: ['**/tests/api/**', '**/tests/a11y/**', '**/tests/visual/**'],
+  testIgnore: ['**/tests/api/**', '**/tests/a11y/**', '**/tests/visual/**', '**/tests/agents/**'],
   dependencies: setupDependencies,
 };
 
@@ -21,9 +26,14 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 10_000 },
   // CI writes a blob report as well, so sharded runs can be merged into one HTML report.
-  reporter: isCI
-    ? [['github'], ['list'], ['html', { open: 'never' }], ['blob']]
-    : [['html', { open: 'never' }], ['list']],
+  // The flaky summary lists retried and @quarantine tests (docs/flaky-tests.md).
+  reporter: [
+    ...(isCI
+      ? ([['github'], ['list'], ['html', { open: 'never' }], ['blob']] as const)
+      : ([['html', { open: 'never' }], ['list']] as const)),
+    [flakySummaryReporter],
+    ...(withAllure ? ([['allure-playwright', { resultsDir: 'allure-results' }]] as const) : []),
+  ],
 
   use: {
     baseURL: config.baseUrl,
@@ -62,6 +72,18 @@ export default defineConfig({
       },
       dependencies: setupDependencies,
     },
+
+    ...(forAgents
+      ? [
+          {
+            // Seed for the planner/generator/healer agents (docs/ai-assisted-testing.md).
+            name: 'agents',
+            testDir: './tests/agents',
+            use: { ...devices['Desktop Chrome'] },
+            dependencies: ['health'],
+          },
+        ]
+      : []),
 
     {
       name: 'chromium',

@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Toolshop (application under test) issues
+    url: https://github.com/testsmith-io/practice-software-testing/issues
+    about: Bugs in Practice Software Testing itself belong in its repository.
