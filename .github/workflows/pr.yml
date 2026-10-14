@@ -39,6 +39,9 @@ jobs:
       - name: Core/app boundary
         run: npm run lint:boundary && npm run typecheck:core
 
+      - name: Playwright Docker image matches @playwright/test
+        run: npm run check:docker-image
+
   smoke:
     name: Smoke tests
     runs-on: ubuntu-24.04

@@ -38,8 +38,9 @@ jobs:
 
       - uses: ./.github/actions/start-toolshop
 
+      # Visual tests run in the Playwright image (job below), not on the runner.
       - name: Run tests
-        run: npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+        run: npx playwright test --grep-invert @visual --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - name: Upload blob report
         if: ${{ !cancelled() }}
@@ -65,9 +66,64 @@ jobs:
         if: always()
         run: npm run toolshop:down
 
+  visual:
+    name: Visual regression (Playwright image)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      TEST_ENV: local
+      CUSTOMER_EMAIL: ${{ secrets.CUSTOMER_EMAIL }}
+      CUSTOMER_PASSWORD: ${{ secrets.CUSTOMER_PASSWORD }}
+      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-test-env
+
+      - uses: ./.github/actions/start-toolshop
+
+      - name: Build test image
+        run: npm run docker:build
+
+      # Baselines are only valid in this image; it reaches Toolshop over the host network.
+      - name: Run visual tests
+        run: >-
+          docker run --rm --network host
+          -e TEST_ENV -e CUSTOMER_EMAIL -e CUSTOMER_PASSWORD -e ADMIN_EMAIL -e ADMIN_PASSWORD
+          -v "$PWD/blob-report:/tests/blob-report"
+          -v "$PWD/test-results:/tests/test-results"
+          toolshop-tests --project=visual
+
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: blob-report-visual
+          path: blob-report/
+          retention-days: 3
+
+      - name: Upload screenshot diffs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-visual
+          path: test-results/
+          retention-days: 14
+
+      - name: Toolshop logs
+        if: failure()
+        run: docker compose logs --tail=200
+
+      - name: Stop Toolshop
+        if: always()
+        run: npm run toolshop:down
+
   report:
     name: Merge reports
-    needs: test
+    needs: [test, visual]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -86,7 +142,8 @@ jobs:
           merge-multiple: true
 
       - name: Merge into one HTML report
-        run: npx playwright merge-reports --reporter html ./all-blob-reports
+        # merge.config.ts reconciles test paths from the runner and the Docker image.
+        run: npx playwright merge-reports -c merge.config.ts --reporter html ./all-blob-reports
 
       - name: Upload HTML report
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

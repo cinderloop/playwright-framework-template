@@ -24,9 +24,14 @@
     "toolshop:seed": "docker compose exec -T laravel-api php artisan migrate:fresh --seed --force",
     "toolshop:down": "docker compose down -v",
     "prepare": "husky",
-    "test:docker": "docker build -t toolshop-tests . && docker run --rm --network host --env-file .env toolshop-tests",
+    "test:docker": "npm run docker:build && docker run --rm --network host --env-file .env toolshop-tests",
     "toolshop:start": "npm run toolshop:up && npm run toolshop:seed",
-    "typecheck:core": "tsc --noEmit -p tsconfig.core.json"
+    "typecheck:core": "tsc --noEmit -p tsconfig.core.json",
+    "test:har:update": "UPDATE_HAR=1 playwright test tests/ui/network/har-replay.spec.ts --project=chromium",
+    "docker:build": "docker build -t toolshop-tests .",
+    "test:visual": "npm run docker:build && docker run --rm --network host --env-file .env toolshop-tests --project=visual",
+    "test:visual:update": "npm run docker:build && docker run --rm --network host --env-file .env -v \"$PWD/tests/visual:/tests/tests/visual\" toolshop-tests --project=visual --update-snapshots",
+    "check:docker-image": "node scripts/check-playwright-image.js"
   },
   "lint-staged": {
     "*.{ts,js,mjs}": [
@@ -36,6 +41,7 @@
     "*.{json,md,yml,yaml}": "prettier --write"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
     "@faker-js/faker": "^10.6.0",
     "@playwright/test": "^1.64.0",
@@ -45,6 +51,7 @@
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-import-x": "^4.17.1",
     "eslint-plugin-playwright": "^2.12.1",
+    "globals": "^17.13.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.10",

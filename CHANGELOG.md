@@ -8,6 +8,17 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Network mocking tests with `page.route`: empty catalog, 500s from the product API and
+  add-to-cart, and a slow product API held open with `holdRequests`; HAR record/replay of the
+  product API.
+- Accessibility: axe-core WCAG 2.1 AA scans of six pages against a documented per-page rule
+  baseline (`src/app/a11y/baseline.ts`), and ARIA snapshots of key components (`a11y` project).
+- Visual regression with `toHaveScreenshot` for four components, run and baselined only in the
+  official Playwright Docker image (`visual` project, `test:visual`, `test:visual:update`).
+- Clock API test for credit card expiry validation at a month boundary.
+- Nightly `visual` job in the Playwright image, merged into the report via `merge.config.ts`;
+  PR check that the Dockerfile image matches `@playwright/test`.
+
 - `src/core/api`: `BaseApiClient` over `APIRequestContext` with bearer-token handling, status
   checks and Zod response parsing; raw `*Response` methods for negative tests.
 - `src/core/matchers`: async `toMatchSchema` matcher for values and `APIResponse` bodies.

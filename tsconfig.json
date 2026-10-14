@@ -22,5 +22,12 @@
       "@app/*": ["./src/app/*"]
     }
   },
-  "include": ["src", "tests", "playwright.config.ts", "eslint.config.js", "scripts"]
+  "include": [
+    "src",
+    "tests",
+    "playwright.config.ts",
+    "merge.config.ts",
+    "eslint.config.js",
+    "scripts"
+  ]
 }

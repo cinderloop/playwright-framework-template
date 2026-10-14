@@ -1,0 +1,10 @@
+/*
+ * Applied to every toHaveScreenshot (see the visual project in
+ * playwright.config.ts). Hides floating widgets whose content changes on
+ * their own and the footer's build stamp, which changes with every UI release.
+ */
+app-chat-widget,
+app-live-activity-widget,
+app-footer {
+  visibility: hidden !important;
+}
