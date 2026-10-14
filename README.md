@@ -254,21 +254,6 @@ what review changed.
 - **Commits:** follow [Conventional Commits](https://www.conventionalcommits.org/)
   (`feat:`, `fix:`, `docs:`, `chore:`).
 
-## Repository setup (one-time, for the owner)
-
-1. **Secrets** (Settings → Secrets and variables → Actions): `CUSTOMER_EMAIL`,
-   `CUSTOMER_PASSWORD`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`. Pull requests from forks do not receive
-   secrets, so their smoke job fails at config validation; the static job still runs.
-2. **Pages** (Settings → Pages): set Source to **GitHub Actions**. The report is published from
-   `main` only.
-3. **Template repository** (Settings → General): tick **Template repository** so others can
-   start from it with **Use this template**. This cannot be set from code.
-4. **Renovate:** install the [Renovate GitHub app](https://github.com/apps/renovate) for this
-   repository. It reads `renovate.json` and opens weekly grouped update PRs for npm, GitHub
-   Actions and Docker. It groups `@playwright/test` with the Playwright image, and Toolshop images
-   wait for approval on the dependency dashboard.
-   [ADR 0006](docs/decisions/0006-renovate-for-dependency-updates.md) explains the choice.
-
 ## Environment variables
 
 They are documented in [.env.example](.env.example) and validated with Zod at start-up. An
