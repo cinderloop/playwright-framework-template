@@ -11,8 +11,8 @@ A production-grade Playwright + TypeScript test automation framework, demonstrat
 [Practice Software Testing (Toolshop)](https://practicesoftwaretesting.com) and designed to be
 reused as a template for other applications.
 
-> Work in progress. Phases 1 (foundation) and 2 (CI/CD and reporting) are complete;
-> API/hybrid tests, accessibility, visual regression and full documentation follow. See [docs/build_plan.md](docs/build_plan.md).
+> Work in progress. Phases 1–3 (foundation, CI/CD and reporting, API and hybrid testing) are
+> complete; accessibility, visual regression and full documentation follow. See [docs/build_plan.md](docs/build_plan.md).
 
 ## Quick start
 
@@ -60,14 +60,44 @@ One-time repository setup:
 ## Project structure
 
 ```
-src/core/   reusable framework code, knows nothing about Toolshop (lint-enforced)
-src/app/    Toolshop-specific config, page objects, components, API helpers, fixtures
-tests/      setup projects (health check, per-role auth) and specs
+src/core/        reusable framework code, knows nothing about Toolshop (lint-enforced)
+  api/           BaseApiClient: typed requests on APIRequestContext, bearer token, Zod parsing
+  matchers/      expect.toMatchSchema(schema), for values or APIResponse bodies
+  fixtures/      base test: uniqueId, cleanup
+  config/ auth/ data/ utils/
+src/app/         Toolshop-specific code
+  api/           one client per resource (auth, products, categories, brands, carts, invoices, ...)
+  schemas/       Zod response schemas; types are inferred from them
+  data/          faker builders and TestData (create via API, delete after the test)
+  pages/ components/ fixtures/ config/ auth/
+tests/
+  setup/         health check and per-role auth (storage state via the API)
+  api/           API tests (no browser)
+  ui/            UI tests
+  e2e/           hybrid tests: arrange via API, act and verify in the UI, clean up via API
 ```
 
 `src/core` may never import from `src/app` or `tests`. ESLint enforces this
 (`import-x/no-restricted-paths` plus a `no-restricted-imports` pattern), and
 `tsconfig.core.json` type-checks `src/core` on its own.
+
+## Test layers and data
+
+| Layer       | Runs in                   | What it covers                                                                                                                                |
+| ----------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/api` | `api` project, no browser | Auth, products, categories, brands, cart and invoices: happy paths, validation errors (422/409), auth failures (401/403), 404s and pagination |
+| `tests/ui`  | every browser project     | Browsing, search, filters, cart, login and role-based access                                                                                  |
+| `tests/e2e` | every browser project     | API-created data verified in the UI, including a full checkout by a newly registered customer                                                 |
+
+Tests create their own data through `testData` (Faker-built payloads, unique per test) and it is
+deleted through the API when the test ends, even when it fails. Toolshop has no API to delete
+orders, so a customer or product that an order references cannot be deleted (409); that data is
+kept and recorded on the test as a `retained-data` annotation. CI starts every run from a freshly
+seeded database, and `npm run toolshop:seed` resets a local one.
+
+The local stack runs Toolshop's cache on Redis rather than the image's default file cache. With
+the file cache, every catalog write flushes the whole cache, including the cached auth user, so
+parallel tests saw valid tokens intermittently rejected with 401.
 
 ## Scripts
 

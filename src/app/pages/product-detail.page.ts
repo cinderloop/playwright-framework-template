@@ -9,8 +9,9 @@ export class ProductDetailPage {
   readonly quantity: Locator;
   readonly addToCartButton: Locator;
   readonly addedToCartToast: Locator;
+  readonly outOfStock: Locator;
 
-  constructor(page: Page) {
+  constructor(private readonly page: Page) {
     this.nav = new NavBar(page);
     this.name = page.getByRole('heading', { level: 1 });
     this.unitPrice = page.getByTestId('unit-price');
@@ -20,6 +21,11 @@ export class ProductDetailPage {
     this.addedToCartToast = page
       .getByRole('alert')
       .filter({ hasText: 'Product added to shopping cart.' });
+    this.outOfStock = page.getByTestId('out-of-stock');
+  }
+
+  async goto(productId: string): Promise<void> {
+    await this.page.goto(`/product/${productId}`);
   }
 
   async addToCart(quantity = 1): Promise<void> {

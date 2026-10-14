@@ -1,2 +1,3 @@
-export { expect, test } from './base';
-export type { CoreFixtures } from './base';
+export { test } from './base';
+export type { Cleanup, CoreFixtures } from './base';
+export { expect } from '../matchers';

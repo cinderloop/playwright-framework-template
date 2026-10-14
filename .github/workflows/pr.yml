@@ -60,9 +60,9 @@ jobs:
 
       - uses: ./.github/actions/start-toolshop
 
-      # Chromium-based projects only, for fast feedback; nightly covers every browser.
+      # API plus Chromium-based projects only, for fast feedback; nightly covers every browser.
       - name: Run @smoke tests
-        run: npx playwright test --grep @smoke --project=chromium --project=mobile-chrome
+        run: npx playwright test --grep @smoke --project=api --project=chromium --project=mobile-chrome
 
       - name: Upload HTML report
         if: ${{ !cancelled() }}

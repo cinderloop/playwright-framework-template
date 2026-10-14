@@ -24,10 +24,19 @@ services:
       - DB_HOST=mariadb
       - host=localhost
       - DISABLE_LOGGING=true
+      # The image defaults to the file cache, where every product/category/brand
+      # write flushes the whole store, including the cached auth user. Under
+      # parallel tests that makes valid tokens intermittently fail with 401.
+      # Redis supports cache tags, so writes flush only product entries.
+      - CACHE_DRIVER=redis
+      - REDIS_CLIENT=predis
+      - REDIS_HOST=redis
     volumes:
       - laravel-app-code:/var/www
     depends_on:
       mariadb:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   angular-ui:
@@ -77,6 +86,14 @@ services:
       interval: 3s
       timeout: 3s
       retries: 40
+
+  redis:
+    image: redis:8-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 3s
+      timeout: 3s
+      retries: 20
 
 volumes:
   laravel-app-code:

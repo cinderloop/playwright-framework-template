@@ -1,0 +1,1 @@
+export { defineFactory } from './factory';
