@@ -2,6 +2,12 @@ import type { Locator, Page } from '@playwright/test';
 import type { PaymentMethod } from '@app/schemas';
 import { CartPage } from './cart.page';
 
+export interface GuestInput {
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
 export interface BillingAddressInput {
   /** ISO 3166-1 alpha-2 code, the value of the country option. */
   country: string;
@@ -23,6 +29,9 @@ export class CheckoutPage {
   readonly city: Locator;
   readonly state: Locator;
   readonly paymentMethod: Locator;
+  readonly cardNumber: Locator;
+  readonly cardExpiry: Locator;
+  readonly cardExpiryInPastError: Locator;
   readonly paymentSuccess: Locator;
   readonly orderConfirmation: Locator;
   private readonly finishButton: Locator;
@@ -37,6 +46,9 @@ export class CheckoutPage {
     this.city = page.getByLabel('City');
     this.state = page.getByLabel('State');
     this.paymentMethod = page.getByLabel('Payment Method');
+    this.cardNumber = page.getByLabel('Credit Card Number');
+    this.cardExpiry = page.getByLabel('Expiration Date');
+    this.cardExpiryInPastError = page.getByText('Expiration date must be in the future.');
     this.paymentSuccess = page.getByText('Payment was successful');
     this.orderConfirmation = page.getByText(/^Thanks for your order!/);
     this.finishButton = page.getByTestId('finish');
@@ -48,6 +60,15 @@ export class CheckoutPage {
 
   async proceedAsSignedInCustomer(): Promise<void> {
     await this.page.getByTestId('proceed-2').click();
+  }
+
+  async continueAsGuest({ email, firstName, lastName }: GuestInput): Promise<void> {
+    await this.page.getByRole('tab', { name: 'Continue as Guest' }).click();
+    await this.page.getByTestId('guest-email').fill(email);
+    await this.page.getByTestId('guest-first-name').fill(firstName);
+    await this.page.getByTestId('guest-last-name').fill(lastName);
+    await this.page.getByTestId('guest-submit').click();
+    await this.page.getByTestId('proceed-2-guest').click();
   }
 
   /** Street, city and state are filled in by the app's postcode lookup. */
@@ -63,6 +84,12 @@ export class CheckoutPage {
 
   async proceedFromBillingAddress(): Promise<void> {
     await this.page.getByTestId('proceed-3').click();
+  }
+
+  /** Types a card expiry (MM/YYYY) and leaves the field so it is validated. */
+  async enterCardExpiry(expiry: string): Promise<void> {
+    await this.cardExpiry.fill(expiry);
+    await this.cardExpiry.blur();
   }
 
   /** First click of the finish button: validates the payment details. */

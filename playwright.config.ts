@@ -6,7 +6,11 @@ const isCI = !!process.env.CI;
 // Browser projects run only after the API/UI health check and the per-role
 // login have succeeded. API tests run once, without a browser.
 const setupDependencies = ['setup'];
-const browserTests = { testIgnore: '**/tests/api/**', dependencies: setupDependencies };
+// API, accessibility and visual tests have dedicated projects below.
+const browserTests = {
+  testIgnore: ['**/tests/api/**', '**/tests/a11y/**', '**/tests/visual/**'],
+  dependencies: setupDependencies,
+};
 
 export default defineConfig({
   testDir: './tests',
@@ -36,6 +40,28 @@ export default defineConfig({
     { name: 'health', testMatch: /health\.setup\.ts/ },
     { name: 'setup', testMatch: /auth\.setup\.ts/, dependencies: ['health'] },
     { name: 'api', testDir: './tests/api', dependencies: ['health'] },
+    {
+      // axe results and ARIA trees are checked once, on desktop Chromium.
+      name: 'a11y',
+      testDir: './tests/a11y',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: setupDependencies,
+    },
+    {
+      // Baselines are Linux/Chromium only (generated in the Playwright Docker
+      // image), so the platform is left out of the snapshot path.
+      name: 'visual',
+      testDir: './tests/visual',
+      use: { ...devices['Desktop Chrome'] },
+      snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}{ext}',
+      expect: {
+        toHaveScreenshot: {
+          stylePath: './tests/visual/screenshot.css',
+          maxDiffPixelRatio: 0.01,
+        },
+      },
+      dependencies: setupDependencies,
+    },
 
     {
       name: 'chromium',
