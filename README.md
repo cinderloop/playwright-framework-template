@@ -28,7 +28,7 @@ as a GitHub template for other applications.
   regression in Docker.
 - **Browsers:** Chromium, Firefox, WebKit and Pixel 7.
 - **CI on GitHub Actions:**
-  - PR checks: lint, typecheck, the boundary check and `@smoke`.
+  - PR checks: lint, format, typecheck, the boundary check, the Docker image tag and `@smoke`.
   - Nightly: the full suite in 4 shards plus a Docker visual job, with a merged report on GitHub
     Pages.
 - **Flaky-test handling.** CI retries a failing test with a trace, `@quarantine` keeps known
@@ -173,7 +173,9 @@ to reject card expiry dates before the current month.
 
 ## Running subsets
 
-Every test is tagged: `@smoke`, `@regression`, `@api`, `@a11y`, `@visual` or `@quarantine`.
+Specs are tagged with the `tag` option: `@smoke`, `@regression`, `@api`, `@a11y`, `@visual` and
+`@quarantine`. The health and auth setup tests are untagged and always run first as project
+dependencies.
 
 | Script                                    | Purpose                                                                 |
 | ----------------------------------------- | ----------------------------------------------------------------------- |
@@ -190,10 +192,12 @@ Every test is tagged: `@smoke`, `@regression`, `@api`, `@a11y`, `@visual` or `@q
 | `npm run test:allure`                     | Run with Allure results enabled (`ALLURE=1`)                            |
 | `npm run report`                          | Open the last HTML report                                               |
 | `npm run allure:generate` / `allure:open` | Build / open the Allure report from `allure-results/`                   |
-| `npm run lint` / `lint:boundary`          | ESLint (zero warnings) / core-only boundary check                       |
+| `npm run lint` / `lint:fix`               | ESLint (zero warnings) / ESLint with autofix                            |
+| `npm run lint:boundary`                   | ESLint on `src/core` only (the core/app boundary)                       |
 | `npm run typecheck` / `typecheck:core`    | `tsc` for the whole repo / for `src/core` alone                         |
 | `npm run format` / `format:check`         | Prettier                                                                |
 | `npm run check:docker-image`              | Dockerfile image tag matches `@playwright/test`                         |
+| `npm run docker:build`                    | Build the test image (`toolshop-tests`) without running it              |
 | `npm run toolshop:start`                  | Start Toolshop and seed it (`up` + `seed`)                              |
 | `npm run toolshop:seed`                   | Reset Toolshop data: `php artisan migrate:fresh --seed`                 |
 | `npm run toolshop:down`                   | Stop Toolshop and delete its volumes                                    |
@@ -228,6 +232,27 @@ What every workflow does:
 - **Caching:** npm packages and Playwright browsers are cached.
 - **Concurrency:** a newer run on the same branch or PR cancels the older one.
 - **Pinning:** third-party actions are pinned to commit SHAs.
+
+## AI-assisted test authoring (optional)
+
+The Playwright test agents (planner, generator, healer) are set up for Claude Code. With Toolshop
+running, open Claude Code in this repository and ask for an agent by name, for example: "Use the
+playwright-test-planner agent to plan tests for the registration page, using project 'agents' and
+seed `tests/agents/seed.spec.ts`". Treat what they produce as a draft. The agents get app behaviour
+wrong at times, and the generated code needs rewriting onto the page objects.
+[docs/ai-assisted-testing.md](docs/ai-assisted-testing.md) covers the setup, a worked example and
+what review changed.
+
+## Contributing
+
+- **Pre-commit hook:** Husky runs ESLint and Prettier on staged files (lint-staged), then both
+  typechecks, so a commit cannot break lint or types. It is installed by `npm ci`.
+- **Pull requests:** they use the template in `.github/PULL_REQUEST_TEMPLATE.md` and must pass the
+  PR checks. Record user-facing changes in [CHANGELOG.md](CHANGELOG.md) (Keep a Changelog).
+- **Issues:** use the forms for framework bugs and flaky tests. Bugs in Toolshop itself belong in
+  [its repository](https://github.com/testsmith-io/practice-software-testing/issues).
+- **Commits:** follow [Conventional Commits](https://www.conventionalcommits.org/)
+  (`feat:`, `fix:`, `docs:`, `chore:`).
 
 ## Repository setup (one-time, for the owner)
 
