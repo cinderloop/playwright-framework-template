@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { defineFactory } from '@core/data';
 import { uniqueSuffix } from '@core/utils';
+import type { ContactMessageInput } from '@app/pages';
 import type {
   BrandInput,
   CategoryInput,
@@ -80,3 +81,12 @@ export function buildCustomer(
     ...overrides,
   };
 }
+
+/** A valid guest contact form entry; the message is over the 50-character minimum. */
+export const buildContactMessage = defineFactory<ContactMessageInput>(() => ({
+  firstName: faker.person.firstName(),
+  lastName: faker.person.lastName().slice(0, 20),
+  email: faker.internet.email({ provider: 'example.com' }).toLowerCase(),
+  subject: 'Webmaster',
+  message: `${faker.lorem.sentences(3)} ${uniqueSuffix()}`.padEnd(60, '.'),
+}));

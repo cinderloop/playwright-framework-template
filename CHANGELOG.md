@@ -6,7 +6,33 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-15
+
+First stable release: all five phases of the build plan.
+
 ### Added
+
+- Tag-based scripts: `test:regression`, `test:api`, `test:a11y`, `test:quarantine`; `test:smoke`
+  and the tag scripts exclude `@quarantine`.
+- Flaky-test strategy: `@quarantine` excluded from PR runs and nightly shards, a non-blocking
+  nightly quarantine job, and a core reporter (`src/core/reporting`) that lists flaky and
+  quarantined tests in the console and the GitHub job summary, including the merged nightly report.
+- Optional Allure 3 reporting (`ALLURE=1`, `test:allure`, `allure:generate`, `allure:open`).
+- Renovate configuration for npm, GitHub Actions and Docker, grouping `@playwright/test` with the
+  Playwright image and gating Toolshop image updates behind approval.
+- Playwright test agents (planner, generator, healer) for Claude Code, with an opt-in `agents`
+  seed project; a planner-written test plan for the contact form (`specs/contact-form.md`).
+- Contact form UI tests (`ContactPage`, `buildContactMessage`), planned and drafted by the agents
+  and rewritten in review.
+- Issue templates (framework bug, flaky test) and a pull request template.
+- Documentation: architecture (with Mermaid diagrams), adapting to your app, flaky tests,
+  AI-assisted testing, and ADRs 0001–0006.
+
+### Changed
+
+- README rewritten as the project's entry point; the Playwright badge reads the version from
+  `package.json`.
+- Nightly reports are merged with reporters from `merge.config.ts`.
 
 - Network mocking tests with `page.route`: empty catalog, 500s from the product API and
   add-to-cart, and a slow product API held open with `holdRequests`; HAR record/replay of the
@@ -55,3 +81,6 @@ All notable changes to this project are documented here. The format follows
 - 12 UI tests: browsing, search, filtering, sorting, cart, login and role-based access.
 - `docker-compose.yml` for a local Toolshop with healthchecks and a seed script, and a
   `Dockerfile` that runs the suite in the official Playwright image.
+
+[Unreleased]: https://github.com/cinderloop/playwright-framework-template/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/cinderloop/playwright-framework-template/releases/tag/v1.0.0

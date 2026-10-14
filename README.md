@@ -3,16 +3,38 @@
 [![PR checks](https://github.com/cinderloop/playwright-framework-template/actions/workflows/pr.yml/badge.svg)](https://github.com/cinderloop/playwright-framework-template/actions/workflows/pr.yml)
 [![Nightly](https://github.com/cinderloop/playwright-framework-template/actions/workflows/nightly.yml/badge.svg)](https://github.com/cinderloop/playwright-framework-template/actions/workflows/nightly.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Playwright](https://img.shields.io/badge/Playwright-1.64.0-2EAD33?logo=playwright)](https://playwright.dev)
+[![Playwright](https://img.shields.io/github/package-json/dependency-version/cinderloop/playwright-framework-template/dev/@playwright/test?logo=playwright&label=Playwright)](https://playwright.dev)
 
 **Latest nightly report:** https://cinderloop.github.io/playwright-framework-template/
 
-A production-grade Playwright + TypeScript test automation framework, demonstrated against
-[Practice Software Testing (Toolshop)](https://practicesoftwaretesting.com) and designed to be
-reused as a template for other applications.
+A production-grade Playwright + TypeScript test automation framework. It is demonstrated against
+[Practice Software Testing (Toolshop)](https://practicesoftwaretesting.com) and built to be reused
+as a GitHub template for other applications.
 
-> Work in progress. Phases 1–4 (foundation, CI/CD and reporting, API and hybrid testing, advanced
-> coverage) are complete; scale, reuse and full documentation follow. See [docs/build_plan.md](docs/build_plan.md).
+## Features
+
+- **Lint-enforced core/app boundary.** `src/core` is reusable and knows nothing about Toolshop;
+  ESLint and a separate tsconfig keep it that way.
+- **Fixtures, not base classes.** Page objects, API clients, test data and sessions are injected
+  with `test.extend` and `mergeTests`.
+- **Typed configuration.** It is selected by `TEST_ENV` and validated with Zod, so a bad value
+  stops the run before a browser opens.
+- **API testing.** A typed `BaseApiClient` parses every response through a Zod schema, and
+  `toMatchSchema` asserts response contracts.
+- **Fast, self-cleaning setup.** Login goes through the API in a setup project, and per-test data
+  is created through the API and always deleted.
+- **Test layers:** UI, API, hybrid e2e (including a full checkout), network mocking and HAR
+  replay, the Clock API, axe accessibility scans with a rule baseline, ARIA snapshots, and visual
+  regression in Docker.
+- **Browsers:** Chromium, Firefox, WebKit and Pixel 7.
+- **CI on GitHub Actions:**
+  - PR checks: lint, typecheck, the boundary check and `@smoke`.
+  - Nightly: the full suite in 4 shards plus a Docker visual job, with a merged report on GitHub
+    Pages.
+- **Flaky-test handling.** CI retries a failing test with a trace, `@quarantine` keeps known
+  flaky tests out of blocking runs, and a stability summary is added to every job.
+- **Optional extras:** Allure reports, Renovate dependency updates, and the Playwright test agents
+  (planner, generator, healer) for Claude Code.
 
 ## Quick start
 
@@ -21,41 +43,26 @@ Requirements: Node.js 22+ (24 LTS recommended, see `.nvmrc`) and Docker.
 ```bash
 npm ci
 npx playwright install --with-deps
-cp .env.example .env          # then fill in the demo accounts from the Toolshop README
+cp .env.example .env          # fill in the accounts below
 npm run toolshop:start        # Toolshop in Docker: UI :4200, API :8091, seeded
 npm test
 ```
 
-To run against the hosted demo instead: `TEST_ENV=public npm test`. That environment is shared
-with everyone, so keep runs small; demo accounts there are sometimes locked by other users, in
-which case point `CUSTOMER_EMAIL` at another seeded account.
+The local stack uses Toolshop's seeded
+[demo accounts](https://github.com/testsmith-io/practice-software-testing#default-accounts). Put a
+customer and the admin account in `.env`.
 
-### Running in Docker
+**In Docker** (no local browsers needed, and the way to run WebKit on hosts where it is
+unsupported):
 
-`npm run test:docker` builds the official Playwright image (pinned to the same version as
-`@playwright/test`) and runs the suite against the local Toolshop over host networking. This is
-also the way to run WebKit on hosts where the native WebKit build is unsupported.
+```bash
+npm run toolshop:start
+npm run test:docker           # builds the Playwright image and runs the suite over host networking
+```
 
-## Continuous integration
-
-| Workflow                                 | Trigger                      | What it does                                                                                                                                 |
-| ---------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| [PR checks](.github/workflows/pr.yml)    | pull request, push to `main` | Lint, format, typecheck and the core/app boundary check; `@smoke` tests on Chromium and Pixel 7 against Toolshop started with Docker Compose |
-| [Nightly](.github/workflows/nightly.yml) | 02:00 UTC daily, manual      | Full suite on every browser in 4 shards, blob reports merged into one HTML report and published to GitHub Pages                              |
-
-Both workflows start Toolshop from `docker-compose.yml`, wait for every service to be healthy,
-seed the database, run the tests and tear the stack down. The HTML report is uploaded as an
-artifact on every run and `test-results/` (traces, screenshots, videos) on failure. npm
-packages and Playwright browsers are cached; a newer run on the same branch or PR cancels the
-older one. Third-party actions are pinned to commit SHAs.
-
-One-time repository setup:
-
-1. **Secrets** (Settings → Secrets and variables → Actions): `CUSTOMER_EMAIL`,
-   `CUSTOMER_PASSWORD`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`. Pull requests from forks do not
-   receive secrets, so their smoke job fails at config validation; the static job still runs.
-2. **Pages** (Settings → Pages): set Source to **GitHub Actions**. The report is published from
-   `main` only.
+**Against the hosted demo:** `TEST_ENV=public npm run test:smoke`. That environment is shared, so
+keep runs small. Demo accounts there are sometimes locked by other users; if so, point
+`CUSTOMER_EMAIL` at another seeded account.
 
 ## Project structure
 
@@ -64,69 +71,88 @@ src/core/        reusable framework code, knows nothing about Toolshop (lint-enf
   api/           BaseApiClient: typed requests on APIRequestContext, bearer token, Zod parsing
   matchers/      expect.toMatchSchema(schema), for values or APIResponse bodies
   a11y/          axe-core scan with a known-violation baseline
+  reporting/     flaky/quarantine summary reporter
   fixtures/      base test: uniqueId, cleanup
   config/ auth/ data/ utils/
 src/app/         Toolshop-specific code
   api/           one client per resource (auth, products, categories, brands, carts, invoices, ...)
   schemas/       Zod response schemas; types are inferred from them
-  data/          faker builders and TestData (create via API, delete after the test)
-  pages/ components/ fixtures/ config/ auth/
+  data/          Faker builders and TestData (create via API, delete after the test)
+  pages/ components/ fixtures/ config/ auth/ a11y/
 tests/
   setup/         health check and per-role auth (storage state via the API)
   api/           API tests (no browser)
-  ui/            UI tests
+  ui/            UI tests, including network mocking, HAR replay and the Clock API
   e2e/           hybrid tests: arrange via API, act and verify in the UI, clean up via API
   a11y/          axe scans against a rule baseline, ARIA snapshots
   visual/        screenshot baselines (Playwright Docker image only)
+  agents/        seed test for the Playwright test agents
+specs/           test plans written by the planner agent
+docs/            architecture, adapting guide, flaky tests, AI-assisted testing, ADRs
 ```
 
-`src/core` may never import from `src/app` or `tests`. ESLint enforces this
-(`import-x/no-restricted-paths` plus a `no-restricted-imports` pattern), and
-`tsconfig.core.json` type-checks `src/core` on its own.
+`src/core` may never import from `src/app` or `tests`. See
+[docs/architecture.md](docs/architecture.md) for how the layers, fixtures, auth, data and CI fit
+together.
 
-## Test layers and data
+## Test layers
 
-| Layer          | Runs in                       | What it covers                                                                                                                                |
-| -------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tests/api`    | `api` project, no browser     | Auth, products, categories, brands, cart and invoices: happy paths, validation errors (422/409), auth failures (401/403), 404s and pagination |
-| `tests/ui`     | every browser project         | Browsing, search, filters, cart, login, role-based access; API failures mocked with `page.route`, HAR replay, Clock API                       |
-| `tests/e2e`    | every browser project         | API-created data verified in the UI, including a full checkout by a newly registered customer                                                 |
-| `tests/a11y`   | `a11y` project (Chromium)     | axe-core WCAG 2.1 AA scans of six pages against a rule baseline; ARIA snapshots of key components                                             |
-| `tests/visual` | `visual` project, Docker only | Screenshot comparison of stable components                                                                                                    |
+| Layer          | Project(s)             | Tests | What it covers                                                                                                 |
+| -------------- | ---------------------- | ----- | -------------------------------------------------------------------------------------------------------------- |
+| `tests/api`    | `api` (no browser)     | 30    | Auth, products, categories, brands, cart, invoices: happy paths, 422/409 validation, 401/403, 404s, pagination |
+| `tests/ui`     | every browser project  | 23    | Browsing, search, filters, cart, login, role access, contact form; mocked API failures, HAR replay, Clock API  |
+| `tests/e2e`    | every browser project  | 4     | API-created data verified in the UI, including a full checkout by a newly registered customer                  |
+| `tests/a11y`   | `a11y` (Chromium)      | 10    | axe-core WCAG 2.1 AA scans of six pages against a rule baseline; ARIA snapshots of key components              |
+| `tests/visual` | `visual` (Docker only) | 4     | Screenshot comparison of stable components                                                                     |
 
-Tests create their own data through `testData` (Faker-built payloads, unique per test) and it is
-deleted through the API when the test ends, even when it fails. Toolshop has no API to delete
-orders, so a customer or product that an order references cannot be deleted (409); that data is
-kept and recorded on the test as a `retained-data` annotation. CI starts every run from a freshly
-seeded database, and `npm run toolshop:seed` resets a local one.
+UI and e2e specs run on Chromium, Firefox, WebKit and Pixel 7. Counts are per browser. The HAR
+re-record test runs only with `npm run test:har:update`.
 
-The local stack runs Toolshop's cache on Redis rather than the image's default file cache. With
-the file cache, every catalog write flushes the whole cache, including the cached auth user, so
-parallel tests saw valid tokens intermittently rejected with 401.
+**Test data.** Tests create their own data through `testData`, using Faker-built payloads that are
+unique per test. The data is deleted through the API when the test ends, even when it fails.
+Toolshop cannot delete some data:
 
-## Advanced coverage
+- orders, and therefore any customer or product an order references;
+- contact messages.
+
+That data is kept and recorded on the test as a `retained-data` annotation. CI starts every run
+from a freshly seeded database, and `npm run toolshop:seed` resets a local one.
+
+### Advanced coverage
 
 **Network mocking** (`tests/ui/network`). `page.route` replaces Toolshop API responses to reach
-states a healthy backend will not produce on demand: an empty catalog, a 500 from the product API
-and from add-to-cart, and a slow product API. Slow responses are simulated by holding the request
-until the test has checked the loading state (`holdRequests` in `src/core/utils`), not with
-timers. One scenario replays the product API from a recorded HAR; re-record it against a freshly
-seeded local stack with `npm run test:har:update`.
+states a healthy backend will not produce on demand:
 
-**Accessibility** (`tests/a11y`). Each key page is scanned with axe-core for WCAG 2.1 A/AA. Known
-failures are listed per page with a reason in
-[`src/app/a11y/baseline.ts`](src/app/a11y/baseline.ts): a scan fails on any rule not in the
-baseline, and annotates baseline rules that stopped failing so the list only shrinks. The full axe
-output is attached to every test. ARIA snapshots (`toMatchAriaSnapshot`) pin the accessibility
-tree of the main menu, sort control, login form, checkout steps and cart table.
+- an empty catalog;
+- a 500 from the product API and from add-to-cart;
+- a slow product API.
+
+Slow responses are simulated by holding the request until the test has checked the loading state
+(`holdRequests` in `src/core/utils`), not with timers. One scenario replays the product API from a
+recorded HAR. Re-record it against a freshly seeded local stack with `npm run test:har:update`.
+
+**Accessibility** (`tests/a11y`). Each key page is scanned with axe-core for WCAG 2.1 A/AA.
+[`src/app/a11y/baseline.ts`](src/app/a11y/baseline.ts) lists known failures per page, each with a
+reason:
+
+- a scan fails on any rule not in the baseline;
+- baseline rules that stopped failing are annotated, so the list only shrinks;
+- the full axe output is attached to every test.
+
+ARIA snapshots (`toMatchAriaSnapshot`) pin the accessibility tree of the main menu, sort control,
+login form, checkout steps and cart table.
 
 **Visual regression** (`tests/visual`). `toHaveScreenshot` covers the login form, the guest
-header, a product detail page and the cart table, all built from seeded data. Floating widgets and
-the footer build stamp are hidden by `tests/visual/screenshot.css`, and related products are
-masked. Baselines are generated and compared only inside the official Playwright image (the
-`Dockerfile`, pinned to the `@playwright/test` version and checked by
-`npm run check:docker-image` in CI), so rendering is identical on every machine; outside it the
-visual tests are skipped. Nightly CI runs them in that image.
+header, a product detail page and the cart table, all from seeded data.
+
+- Floating widgets and the footer build stamp are hidden by `tests/visual/screenshot.css`, and
+  related products are masked.
+- Baselines are generated and compared only inside the official Playwright image, so rendering is
+  identical on every machine.
+- That image is the `Dockerfile`, pinned to the `@playwright/test` version and checked by
+  `npm run check:docker-image` in CI.
+- Outside the image, the visual tests are skipped. Nightly CI runs them in the image.
+- [ADR 0004](docs/decisions/0004-docker-based-visual-baselines.md) explains why.
 
 To update baselines after an intended UI change:
 
@@ -135,45 +161,115 @@ To update baselines after an intended UI change:
    `tests/visual/__screenshots__/`.
 3. Review the image diffs in the pull request, then commit them with the change.
 4. When upgrading Playwright, update the `Dockerfile` tag in the same PR and regenerate all
-   baselines.
+   baselines. Renovate groups the two updates into one PR.
 
-**Clock API** (`tests/ui/checkout/card-expiry.spec.ts`). The payment step rejects card expiry
-dates before the current month using the browser clock. `page.clock` pins the date to
-15 March 2031 to check the boundary (February rejected, March accepted), then moves the clock
-into April to show the same card expiring. It runs as a guest, because a signed-in session's JWT
-would look expired to the app with the clock years ahead.
+**Clock API** (`tests/ui/checkout/card-expiry.spec.ts`). The payment step uses the browser clock
+to reject card expiry dates before the current month.
 
-## Scripts
+- `page.clock` pins the date to 15 March 2031. February is rejected and March accepted.
+- The clock then moves into April, and the same card is rejected as expired.
+- The test runs as a guest. With the clock years ahead, a signed-in session's JWT would look
+  expired to the app.
 
-| Script                                 | Purpose                                                 |
-| -------------------------------------- | ------------------------------------------------------- |
-| `npm test`                             | Full suite, all browser projects                        |
-| `npm run test:smoke`                   | `@smoke` tests only                                     |
-| `npm run test:ui` / `test:headed`      | Playwright UI mode / headed run                         |
-| `npm run test:docker`                  | Suite inside the official Playwright image              |
-| `npm run test:visual`                  | Visual tests in the Playwright image                    |
-| `npm run test:visual:update`           | Regenerate visual baselines in the Playwright image     |
-| `npm run test:har:update`              | Re-record the product API HAR (local Toolshop)          |
-| `npm run check:docker-image`           | Dockerfile image tag matches `@playwright/test`         |
-| `npm run report`                       | Open the last HTML report                               |
-| `npm run lint` / `lint:boundary`       | ESLint (zero warnings) / core-only boundary check       |
-| `npm run typecheck` / `typecheck:core` | `tsc` for the whole repo / for `src/core` alone         |
-| `npm run format` / `format:check`      | Prettier                                                |
-| `npm run toolshop:start`               | Start Toolshop and seed it (`up` + `seed`)              |
-| `npm run toolshop:seed`                | Reset Toolshop data: `php artisan migrate:fresh --seed` |
-| `npm run toolshop:down`                | Stop Toolshop and delete its volumes                    |
+## Running subsets
+
+Every test is tagged: `@smoke`, `@regression`, `@api`, `@a11y`, `@visual` or `@quarantine`.
+
+| Script                                    | Purpose                                                                 |
+| ----------------------------------------- | ----------------------------------------------------------------------- |
+| `npm test`                                | Everything, all projects                                                |
+| `npm run test:smoke`                      | `@smoke` tests (what PRs run), excluding `@quarantine`                  |
+| `npm run test:regression`                 | `@regression` UI and e2e tests                                          |
+| `npm run test:api` / `test:a11y`          | API tests / accessibility tests                                         |
+| `npm run test:quarantine`                 | Only `@quarantine` tests                                                |
+| `npm run test:ui` / `test:headed`         | Playwright UI mode / headed run                                         |
+| `npm run test:docker`                     | Whole suite inside the official Playwright image (incl. WebKit, visual) |
+| `npm run test:visual`                     | Visual tests in the Playwright image                                    |
+| `npm run test:visual:update`              | Regenerate visual baselines in the Playwright image                     |
+| `npm run test:har:update`                 | Re-record the product API HAR (local Toolshop)                          |
+| `npm run test:allure`                     | Run with Allure results enabled (`ALLURE=1`)                            |
+| `npm run report`                          | Open the last HTML report                                               |
+| `npm run allure:generate` / `allure:open` | Build / open the Allure report from `allure-results/`                   |
+| `npm run lint` / `lint:boundary`          | ESLint (zero warnings) / core-only boundary check                       |
+| `npm run typecheck` / `typecheck:core`    | `tsc` for the whole repo / for `src/core` alone                         |
+| `npm run format` / `format:check`         | Prettier                                                                |
+| `npm run check:docker-image`              | Dockerfile image tag matches `@playwright/test`                         |
+| `npm run toolshop:start`                  | Start Toolshop and seed it (`up` + `seed`)                              |
+| `npm run toolshop:seed`                   | Reset Toolshop data: `php artisan migrate:fresh --seed`                 |
+| `npm run toolshop:down`                   | Stop Toolshop and delete its volumes                                    |
+
+Pass extra Playwright options after `--`, e.g. `npm run test:smoke -- --project=firefox`.
+
+## Reporting
+
+- **HTML report:** written on every run (`npm run report`). The nightly merges every shard and the
+  Docker visual job into one report and publishes it to
+  [GitHub Pages](https://cinderloop.github.io/playwright-framework-template/).
+- **Test stability summary:** written after every run to the console and, in CI, to the job
+  summary. It lists tests that only passed on retry and every quarantined test. See
+  [docs/flaky-tests.md](docs/flaky-tests.md) for how flakiness is tracked.
+- **Allure (optional):** `npm run test:allure`, then `npm run allure:generate` and
+  `npm run allure:open`. It is off by default, so normal runs write only the HTML report. It uses
+  Allure 3, which needs no Java.
+
+## Continuous integration
+
+| Workflow                                 | Trigger                      | What it does                                                                                                                                                 |
+| ---------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [PR checks](.github/workflows/pr.yml)    | pull request, push to `main` | Lint, format, typecheck, core/app boundary, Docker image tag; `@smoke` (minus `@quarantine`) on API, Chromium and Pixel 7 against Toolshop in Docker Compose |
+| [Nightly](.github/workflows/nightly.yml) | 02:00 UTC daily, manual      | Full suite on every browser in 4 shards, visual tests in the Playwright image, quarantined tests (non-blocking); one merged report published to GitHub Pages |
+
+What every workflow does:
+
+- **Toolshop:** each test job starts it from `docker-compose.yml`, waits for every service to be
+  healthy and seeds the database. It runs the tests, then tears the stack down.
+- **Artifacts:** the HTML report is uploaded on every run, and `test-results/` (traces,
+  screenshots, videos) on failure.
+- **Caching:** npm packages and Playwright browsers are cached.
+- **Concurrency:** a newer run on the same branch or PR cancels the older one.
+- **Pinning:** third-party actions are pinned to commit SHAs.
+
+## Repository setup (one-time, for the owner)
+
+1. **Secrets** (Settings → Secrets and variables → Actions): `CUSTOMER_EMAIL`,
+   `CUSTOMER_PASSWORD`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`. Pull requests from forks do not receive
+   secrets, so their smoke job fails at config validation; the static job still runs.
+2. **Pages** (Settings → Pages): set Source to **GitHub Actions**. The report is published from
+   `main` only.
+3. **Template repository** (Settings → General): tick **Template repository** so others can
+   start from it with **Use this template**. This cannot be set from code.
+4. **Renovate:** install the [Renovate GitHub app](https://github.com/apps/renovate) for this
+   repository. It reads `renovate.json` and opens weekly grouped update PRs for npm, GitHub
+   Actions and Docker. It groups `@playwright/test` with the Playwright image, and Toolshop images
+   wait for approval on the dependency dashboard.
+   [ADR 0006](docs/decisions/0006-renovate-for-dependency-updates.md) explains the choice.
 
 ## Environment variables
 
-Documented in [.env.example](.env.example) and validated with Zod at start-up; an invalid or
-missing value stops the run before any browser starts.
+They are documented in [.env.example](.env.example) and validated with Zod at start-up. An
+invalid or missing value stops the run before any browser starts.
 
-| Variable                              | Required | Description                              |
-| ------------------------------------- | -------- | ---------------------------------------- |
-| `TEST_ENV`                            | no       | `local` (default) or `public`            |
-| `BASE_URL`, `API_URL`                 | no       | Override the per-environment UI/API URLs |
-| `CUSTOMER_EMAIL`, `CUSTOMER_PASSWORD` | yes      | Account used for the customer role       |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD`       | yes      | Account used for the admin role          |
+| Variable                              | Required | Description                                       |
+| ------------------------------------- | -------- | ------------------------------------------------- |
+| `TEST_ENV`                            | no       | `local` (default) or `public`                     |
+| `BASE_URL`, `API_URL`                 | no       | Override the per-environment UI/API URLs          |
+| `CUSTOMER_EMAIL`, `CUSTOMER_PASSWORD` | yes      | Account used for the customer role                |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`       | yes      | Account used for the admin role                   |
+| `ALLURE`                              | no       | Set to `1` to also write Allure results           |
+| `PW_AGENTS`                           | no       | Set by `.mcp.json`; adds the agents' seed project |
+
+## Documentation
+
+- [Architecture](docs/architecture.md): the core/app boundary, fixture composition, auth, data
+  and CI flow.
+- [Adapting to your app](docs/adapting-to-your-app.md): use this as a template; add a page object,
+  an API client, a role or an environment.
+- [Flaky tests](docs/flaky-tests.md): retries, quarantine and how flakiness is tracked.
+- [AI-assisted testing](docs/ai-assisted-testing.md): the Playwright planner, generator and healer
+  agents, what they produced, and what review changed.
+- [Decisions](docs/decisions/): ADRs for fixtures, API auth, Zod, Docker visual baselines, Toolshop
+  in Compose and Renovate.
+- [Changelog](CHANGELOG.md)
 
 ## License
 

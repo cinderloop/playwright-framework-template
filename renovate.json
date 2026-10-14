@@ -1,0 +1,58 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Dependency updates for npm, GitHub Actions and Docker. See README, Dependency updates.",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":semanticCommitTypeAll(chore)"
+  ],
+  "timezone": "Etc/UTC",
+  "schedule": ["before 6am on monday"],
+  "minimumReleaseAge": "3 days",
+  "labels": ["dependencies"],
+  "rangeStrategy": "bump",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"]
+  },
+  "packageRules": [
+    {
+      "description": "The runner and its Docker image must move together (npm run check:docker-image), and visual baselines are tied to the image's browsers.",
+      "groupName": "Playwright",
+      "matchPackageNames": ["@playwright/test", "mcr.microsoft.com/playwright"],
+      "prBodyNotes": [
+        "Regenerate visual baselines in this PR: `npm run test:visual:update`, then review the image diffs. If the test agent definitions changed upstream, regenerate them as described in docs/ai-assisted-testing.md."
+      ]
+    },
+    {
+      "description": "Toolshop is the application under test; a new image can change behaviour, accessibility and screenshots, so updates wait for approval on the dependency dashboard.",
+      "groupName": "Toolshop images",
+      "matchFileNames": ["docker-compose.yml"],
+      "matchPackageNames": ["testsmith/**"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "groupName": "Lint and format tooling",
+      "matchPackageNames": [
+        "eslint",
+        "@eslint/js",
+        "eslint-*",
+        "typescript-eslint",
+        "prettier",
+        "globals",
+        "husky",
+        "lint-staged"
+      ],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "Allure",
+      "matchPackageNames": ["allure", "allure-playwright"]
+    },
+    {
+      "groupName": "GitHub Actions",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "digest", "pinDigest"]
+    }
+  ]
+}

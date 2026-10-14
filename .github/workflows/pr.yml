@@ -64,8 +64,11 @@ jobs:
       - uses: ./.github/actions/start-toolshop
 
       # API plus Chromium-based projects only, for fast feedback; nightly covers every browser.
+      # Quarantined tests never block a PR (docs/flaky-tests.md).
       - name: Run @smoke tests
-        run: npx playwright test --grep @smoke --project=api --project=chromium --project=mobile-chrome
+        run: >-
+          npx playwright test --grep @smoke --grep-invert @quarantine
+          --project=api --project=chromium --project=mobile-chrome
 
       - name: Upload HTML report
         if: ${{ !cancelled() }}
