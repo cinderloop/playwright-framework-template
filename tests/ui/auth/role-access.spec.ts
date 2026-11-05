@@ -1,8 +1,7 @@
-import { authFile } from '@app/auth';
 import { expect, test } from '@app/fixtures';
 
 test.describe('Role-based access as customer', () => {
-  test.use({ storageState: authFile('customer') });
+  test.beforeEach(({ signInAs }) => signInAs('customer'));
 
   test(
     'customer is redirected away from the admin area',
@@ -18,7 +17,7 @@ test.describe('Role-based access as customer', () => {
 });
 
 test.describe('Role-based access as admin', () => {
-  test.use({ storageState: authFile('admin') });
+  test.beforeEach(({ signInAs }) => signInAs('admin'));
 
   test('admin can open the dashboard', { tag: '@regression' }, async ({ adminDashboardPage }) => {
     await adminDashboardPage.goto();

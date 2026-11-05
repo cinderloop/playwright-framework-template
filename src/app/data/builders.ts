@@ -5,9 +5,12 @@ import type { ContactMessageInput } from '@app/pages';
 import type {
   BrandInput,
   CategoryInput,
+  MessageInput,
   PostcodeLookup,
   ProductInput,
+  ProfileUpdate,
   RegistrationInput,
+  User,
 } from '@app/schemas';
 
 // Builders produce valid request payloads; nothing here talks to the API.
@@ -81,6 +84,24 @@ export function buildCustomer(
     ...overrides,
   };
 }
+
+/** A valid `PUT /users/{id}` body that changes the name and address. */
+export function buildProfileUpdate(user: User): ProfileUpdate {
+  return {
+    first_name: 'Changed',
+    last_name: user.last_name,
+    email: user.email,
+    address: { street: 'Changed Street', city: 'Changed City', country: 'NL' },
+  };
+}
+
+/** A valid `POST /messages` body. The API's limit is 250 characters. */
+export const buildMessage = defineFactory<MessageInput>(() => ({
+  name: faker.person.fullName(),
+  email: faker.internet.email({ provider: 'example.com' }).toLowerCase(),
+  subject: 'webmaster',
+  message: `${faker.lorem.sentence()} ${uniqueSuffix()}`,
+}));
 
 /** A valid guest contact form entry; the message is over the 50-character minimum. */
 export const buildContactMessage = defineFactory<ContactMessageInput>(() => ({

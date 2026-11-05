@@ -1,7 +1,6 @@
 import { expect, test } from '@app/fixtures';
 
-// These tests drive the login form itself; every other test signs in through
-// the API-backed storage state written by tests/setup/auth.setup.ts.
+// Covers the login UI itself. Every other test signs in through the API instead.
 test.describe('Login', () => {
   test.beforeEach(async ({ loginPage }) => {
     await loginPage.goto();

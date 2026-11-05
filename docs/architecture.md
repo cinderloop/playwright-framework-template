@@ -8,7 +8,7 @@ that knows about Toolshop lives in `src/app` and `tests`, and the reusable frame
 ```mermaid
 flowchart TB
   subgraph tests["tests/ (specs)"]
-    setup["setup/<br/>health + per-role auth"]
+    setup["setup/<br/>health check"]
     api_t["api/"]
     ui_t["ui/ · e2e/"]
     a11y_t["a11y/ · visual/"]
@@ -90,16 +90,16 @@ test = mergeTests(coreTest, configTest, apiTest, dataTest, pagesTest)
 
 1. The **`health`** project checks that the API (`/status`) and UI respond, with a message
    pointing at `npm run toolshop:start` when they do not.
-2. The **`setup`** project logs in each role (`customer`, `admin`) **through the API** and writes
-   the JWT into a storage state (`.auth/<role>.json`) the way the Angular app stores it in
-   `localStorage`. No browser is involved, so this takes milliseconds.
-3. Specs opt into a role with `test.use({ storageState: authFile('customer') })`. Guests need
-   nothing.
-4. Users created by a test (for example the checkout customer) are signed in with
-   `signInWithToken(context, token)`, an init script that sets the same `localStorage` key.
+2. Tests that need a configured role call the **`signInAs`** fixture before the first navigation.
+   It logs in **through the API** and puts the JWT in `localStorage` the way the Angular app stores
+   it. No browser is involved, so this takes milliseconds. Guests need nothing.
+3. Users created by a test (for example the checkout customer) are signed in with
+   `signInWithToken(context, token)`, the function `signInAs` uses.
+
+Tokens are fetched per test because Toolshop's last five minutes, which a full run can outlast.
 
 The login UI is still covered by `tests/ui/auth/login.spec.ts`. See
-[ADR 0002](decisions/0002-api-based-auth-setup.md).
+[ADR 0015](decisions/0015-sign-in-per-test.md).
 
 ## Data strategy
 
@@ -123,8 +123,8 @@ The login UI is still covered by `tests/ui/auth/login.spec.ts`. See
 | Project                                          | Runs                        | Notes                                                     |
 | ------------------------------------------------ | --------------------------- | --------------------------------------------------------- |
 | `health`                                         | API/UI reachability         | Dependency of everything                                  |
-| `setup`                                          | Per-role storage states     | Depends on `health`                                       |
 | `api`                                            | `tests/api`                 | No browser                                                |
+| `contract`                                       | `tests/contract`            | No browser; compares live responses with the OpenAPI spec |
 | `chromium`, `firefox`, `webkit`, `mobile-chrome` | `tests/ui`, `tests/e2e`     | Same specs on every browser                               |
 | `a11y`                                           | `tests/a11y`                | Desktop Chromium only; axe scans and ARIA snapshots       |
 | `visual`                                         | `tests/visual`              | Skipped outside the Playwright Docker image               |
@@ -143,12 +143,14 @@ flowchart LR
   end
 
   subgraph Nightly["nightly.yml (02:00 UTC, manual)"]
-    shards["test × 4 shards<br/>all browsers<br/>minus @visual, @quarantine"]
+    shards["test × 4 shards<br/>all browsers<br/>minus @visual, @quarantine,<br/>@api-advanced, @contract"]
+    advanced["advanced<br/>@api-advanced, @contract<br/>no browsers"]
     visual["visual<br/>Playwright Docker image"]
     quarantine["quarantine<br/>non-blocking"]
     merge["report<br/>merge-reports + flaky summary"]
     pages["deploy-report<br/>GitHub Pages (main)"]
     shards --> merge
+    advanced --> merge
     visual --> merge
     quarantine --> merge
     merge --> pages

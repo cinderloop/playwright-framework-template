@@ -20,17 +20,21 @@ as a GitHub template for other applications.
 - **Typed configuration.** It is selected by `TEST_ENV` and validated with Zod, so a bad value
   stops the run before a browser opens.
 - **API testing.** A typed `BaseApiClient` parses every response through a Zod schema, and
-  `toMatchSchema` asserts response contracts.
-- **Fast, self-cleaning setup.** Login goes through the API in a setup project, and per-test data
+  `toMatchSchema` asserts response contracts. Failed tests get a redacted log of their API calls.
+- **Advanced API layer (opt-in).** A data-driven authorization matrix, security-adjacent tests,
+  OpenAPI drift checks, property-based tests, concurrency and async flows. See
+  [docs/api-testing.md](docs/api-testing.md).
+- **Fast, self-cleaning setup.** Tests sign in through the API with a fresh token, and per-test data
   is created through the API and always deleted.
 - **Test layers:** UI, API, hybrid e2e (including a full checkout), network mocking and HAR
   replay, the Clock API, axe accessibility scans with a rule baseline, ARIA snapshots, and visual
   regression in Docker.
 - **Browsers:** Chromium, Firefox, WebKit and Pixel 7.
 - **CI on GitHub Actions:**
-  - PR checks: lint, format, typecheck, the boundary check, the Docker image tag and `@smoke`.
-  - Nightly: the full suite in 4 shards plus a Docker visual job, with a merged report on GitHub
-    Pages.
+  - PR checks: lint, format, typecheck, the boundary check, unit tests, the Docker image tag and
+    `@smoke`.
+  - Nightly: the full suite in 4 shards, plus jobs for the advanced API suites and Docker visual
+    tests, with a merged report on GitHub Pages.
 - **Flaky-test handling.** CI retries a failing test with a trace, `@quarantine` keeps known
   flaky tests out of blocking runs, and a stability summary is added to every job.
 - **Optional extras:** Allure reports, Renovate dependency updates, and the Playwright test agents
@@ -68,45 +72,59 @@ keep runs small. Demo accounts there are sometimes locked by other users; if so,
 
 ```
 src/core/        reusable framework code, knows nothing about Toolshop (lint-enforced)
-  api/           BaseApiClient: typed requests on APIRequestContext, bearer token, Zod parsing
-  matchers/      expect.toMatchSchema(schema), for values or APIResponse bodies
+  api/           BaseApiClient: typed requests on APIRequestContext, bearer token, Zod parsing;
+                 ApiRecorder and redaction
+  authorization/ data-driven authorization matrix: rows, expansion and the test runner
+  contract/      compares live responses with an OpenAPI spec
+  matchers/      expect.toMatchSchema(schema), expect.toNotExposeFields(fields)
   a11y/          axe-core scan with a known-violation baseline
   reporting/     flaky/quarantine summary reporter
-  fixtures/      base test: uniqueId, cleanup
-  config/ auth/ data/ utils/
+  fixtures/      base test: uniqueId, cleanup, apiRecorder
+  utils/         pollUntil, checkProperty, markKnownIssue, localOnly, cleanup queue, ...
+  config/ data/
 src/app/         Toolshop-specific code
   api/           one client per resource (auth, products, categories, brands, carts, invoices, ...)
   schemas/       Zod response schemas; types are inferred from them
   data/          Faker builders and TestData (create via API, delete after the test)
+  authorization/ the Toolshop authorization matrix and its actors
+  contract/      the operations the drift check samples, and the reviewed spec hash
   pages/ components/ fixtures/ config/ auth/ a11y/
 tests/
-  setup/         health check and per-role auth (storage state via the API)
+  setup/         health check
   api/           API tests (no browser)
+  api/advanced/  opt-in, local-only: authorization, security, properties, concurrency, async
+  contract/      OpenAPI drift check
   ui/            UI tests, including network mocking, HAR replay and the Clock API
   e2e/           hybrid tests: arrange via API, act and verify in the UI, clean up via API
   a11y/          axe scans against a rule baseline, ARIA snapshots
   visual/        screenshot baselines (Playwright Docker image only)
   agents/        seed test for the Playwright test agents
 specs/           test plans written by the planner agent
-docs/            architecture, adapting guide, flaky tests, AI-assisted testing, ADRs
+docs/            architecture, API testing, findings, adapting guide, flaky tests, ADRs
 ```
 
-`src/core` may never import from `src/app` or `tests`. See
+`src/core` may never import from `src/app` or `tests`. Its pure functions have Vitest unit tests
+beside them (`*.unit.test.ts`). See
 [docs/architecture.md](docs/architecture.md) for how the layers, fixtures, auth, data and CI fit
 together.
 
 ## Test layers
 
-| Layer          | Project(s)             | Tests | What it covers                                                                                                 |
-| -------------- | ---------------------- | ----- | -------------------------------------------------------------------------------------------------------------- |
-| `tests/api`    | `api` (no browser)     | 30    | Auth, products, categories, brands, cart, invoices: happy paths, 422/409 validation, 401/403, 404s, pagination |
-| `tests/ui`     | every browser project  | 23    | Browsing, search, filters, cart, login, role access, contact form; mocked API failures, HAR replay, Clock API  |
-| `tests/e2e`    | every browser project  | 4     | API-created data verified in the UI, including a full checkout by a newly registered customer                  |
-| `tests/a11y`   | `a11y` (Chromium)      | 10    | axe-core WCAG 2.1 AA scans of six pages against a rule baseline; ARIA snapshots of key components              |
-| `tests/visual` | `visual` (Docker only) | 4     | Screenshot comparison of stable components                                                                     |
+| Layer                        | Project(s)                          | Tests | What it covers                                                                                                                                                                 |
+| ---------------------------- | ----------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tests/api`                  | `api` (no browser)                  | 30    | Auth, products, categories, brands, cart, invoices: happy paths, 422/409 validation, 401/403, 404s, pagination                                                                 |
+| `tests/api/advanced`         | `api` (no browser), local only      | 199   | Authorization matrix (124 rows), mass assignment, sensitive data, tokens, account security, rate limiting, error format, property-based, concurrency, idempotency, async flows |
+| `tests/contract`             | `contract` (no browser), local only | 2     | OpenAPI spec fingerprint; 39 live responses compared with the spec and the framework's schemas                                                                                 |
+| `src/core/**/*.unit.test.ts` | Vitest                              | 150   | Pure core logic: redaction, recording, matrix expansion, schema comparison                                                                                                     |
+| `tests/ui`                   | every browser project               | 23    | Browsing, search, filters, cart, login, role access, contact form; mocked API failures, HAR replay, Clock API                                                                  |
+| `tests/e2e`                  | every browser project               | 4     | API-created data verified in the UI, including a full checkout by a newly registered customer                                                                                  |
+| `tests/a11y`                 | `a11y` (Chromium)                   | 10    | axe-core WCAG 2.1 AA scans of six pages against a rule baseline; ARIA snapshots of key components                                                                              |
+| `tests/visual`               | `visual` (Docker only)              | 4     | Screenshot comparison of stable components                                                                                                                                     |
 
 UI and e2e specs run on Chromium, Firefox, WebKit and Pixel 7. Counts are per browser. The HAR
-re-record test runs only with `npm run test:har:update`.
+re-record test runs only with `npm run test:har:update`. In `tests/api/advanced`, tests with a
+`known-issue` annotation assert the correct behaviour and are expected to fail until Toolshop
+changes; [docs/api-findings.md](docs/api-findings.md) lists what they found.
 
 **Test data.** Tests create their own data through `testData`, using Faker-built payloads that are
 unique per test. The data is deleted through the API when the test ends, even when it fails.
@@ -173,16 +191,19 @@ to reject card expiry dates before the current month.
 
 ## Running subsets
 
-Specs are tagged with the `tag` option: `@smoke`, `@regression`, `@api`, `@a11y`, `@visual` and
-`@quarantine`. The health and auth setup tests are untagged and always run first as project
-dependencies.
+Specs are tagged with the `tag` option: `@smoke`, `@regression`, `@api`, `@api-advanced`,
+`@contract`, `@a11y`, `@visual` and `@quarantine`. The health check is untagged and always runs first, as a project dependency.
 
 | Script                                    | Purpose                                                                 |
 | ----------------------------------------- | ----------------------------------------------------------------------- |
 | `npm test`                                | Everything, all projects                                                |
 | `npm run test:smoke`                      | `@smoke` tests (what PRs run), excluding `@quarantine`                  |
 | `npm run test:regression`                 | `@regression` UI and e2e tests                                          |
-| `npm run test:api` / `test:a11y`          | API tests / accessibility tests                                         |
+| `npm run test:api` / `test:a11y`          | API tests, without the advanced suites / accessibility tests            |
+| `npm run test:api:advanced`               | Advanced API suites (local only; includes a five-minute token test)     |
+| `npm run test:unit`                       | Vitest unit tests for `src/core`                                        |
+| `npm run check:openapi`                   | Compare live responses with the OpenAPI spec and print the drift report |
+| `npm run check:openapi:update`            | Record the current spec as reviewed                                     |
 | `npm run test:quarantine`                 | Only `@quarantine` tests                                                |
 | `npm run test:ui` / `test:headed`         | Playwright UI mode / headed run                                         |
 | `npm run test:docker`                     | Whole suite inside the official Playwright image (incl. WebKit, visual) |
@@ -199,7 +220,7 @@ dependencies.
 | `npm run check:docker-image`              | Dockerfile image tag matches `@playwright/test`                         |
 | `npm run docker:build`                    | Build the test image (`toolshop-tests`) without running it              |
 | `npm run toolshop:start`                  | Start Toolshop and seed it (`up` + `seed`)                              |
-| `npm run toolshop:seed`                   | Reset Toolshop data: `php artisan migrate:fresh --seed`                 |
+| `npm run toolshop:seed`                   | Reset Toolshop data, generated PDFs and the cache                       |
 | `npm run toolshop:down`                   | Stop Toolshop and delete its volumes                                    |
 
 Pass extra Playwright options after `--`, e.g. `npm run test:smoke -- --project=firefox`.
@@ -218,10 +239,10 @@ Pass extra Playwright options after `--`, e.g. `npm run test:smoke -- --project=
 
 ## Continuous integration
 
-| Workflow                                 | Trigger                      | What it does                                                                                                                                                 |
-| ---------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [PR checks](.github/workflows/pr.yml)    | pull request, push to `main` | Lint, format, typecheck, core/app boundary, Docker image tag; `@smoke` (minus `@quarantine`) on API, Chromium and Pixel 7 against Toolshop in Docker Compose |
-| [Nightly](.github/workflows/nightly.yml) | 02:00 UTC daily, manual      | Full suite on every browser in 4 shards, visual tests in the Playwright image, quarantined tests (non-blocking); one merged report published to GitHub Pages |
+| Workflow                                 | Trigger                      | What it does                                                                                                                                                                                        |
+| ---------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [PR checks](.github/workflows/pr.yml)    | pull request, push to `main` | Lint, format, typecheck, core/app boundary, unit tests, Docker image tag; `@smoke` (minus `@quarantine`) on API, Chromium and Pixel 7 against Toolshop in Docker Compose                            |
+| [Nightly](.github/workflows/nightly.yml) | 02:00 UTC daily, manual      | Full suite on every browser in 4 shards, advanced API suites and OpenAPI drift, visual tests in the Playwright image, quarantined tests (non-blocking); one merged report published to GitHub Pages |
 
 What every workflow does:
 
@@ -266,19 +287,25 @@ invalid or missing value stops the run before any browser starts.
 | `CUSTOMER_EMAIL`, `CUSTOMER_PASSWORD` | yes      | Account used for the customer role                |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`       | yes      | Account used for the admin role                   |
 | `ALLURE`                              | no       | Set to `1` to also write Allure results           |
+| `PROPERTY_SEED`                       | no       | Repeat a property test run with this seed         |
+| `UPDATE_OPENAPI`                      | no       | Set by `check:openapi:update`; records the spec   |
 | `PW_AGENTS`                           | no       | Set by `.mcp.json`; adds the agents' seed project |
 
 ## Documentation
 
 - [Architecture](docs/architecture.md): the core/app boundary, fixture composition, auth, data
   and CI flow.
+- [API testing](docs/api-testing.md): the API layer, each advanced technique and how to adapt them.
+- [API findings](docs/api-findings.md): what the advanced suites found in Toolshop.
+- [API reconnaissance](docs/api-recon.md): the endpoint inventory the advanced suites were planned
+  from.
 - [Adapting to your app](docs/adapting-to-your-app.md): use this as a template; add a page object,
   an API client, a role or an environment.
 - [Flaky tests](docs/flaky-tests.md): retries, quarantine and how flakiness is tracked.
 - [AI-assisted testing](docs/ai-assisted-testing.md): the Playwright planner, generator and healer
   agents, what they produced, and what review changed.
 - [Decisions](docs/decisions/): ADRs for fixtures, API auth, Zod, Docker visual baselines, Toolshop
-  in Compose and Renovate.
+  in Compose, Renovate, the advanced API layer and signing in per test.
 - [Changelog](CHANGELOG.md)
 
 ## License

@@ -27,6 +27,7 @@
     "tests",
     "playwright.config.ts",
     "merge.config.ts",
+    "vitest.config.ts",
     "eslint.config.js",
     "scripts"
   ]

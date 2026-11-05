@@ -1,0 +1,102 @@
+import type { AuthorizationContext } from '@core/authorization';
+import type { ToolshopApi } from '@app/api';
+import { buildMessage, type NewCustomer, type TestData } from '@app/data';
+import type { Favorite, InvoiceInput, Message } from '@app/schemas';
+
+/**
+ * Who a row acts as. `owner` holds the resource and `other-user` is a second
+ * customer. `customer` is that same second customer, named for rows about a
+ * role rather than ownership.
+ */
+export type ToolshopActor = 'anonymous' | 'owner' | 'other-user' | 'customer' | 'admin';
+
+export interface OwnedInvoice {
+  owner: NewCustomer;
+  id: string;
+  invoiceNumber: string;
+  input: InvoiceInput;
+}
+
+export interface OwnedFavorite {
+  owner: NewCustomer;
+  favorite: Favorite;
+}
+
+export interface OwnedMessage {
+  owner: NewCustomer;
+  message: Message;
+}
+
+interface ContextDeps {
+  api: ToolshopApi;
+  adminApi: ToolshopApi;
+  testData: TestData;
+}
+
+/** Actors and arrange steps for one matrix row. Customers are created on first use. */
+export class ToolshopAuthorizationContext implements AuthorizationContext<
+  ToolshopActor,
+  ToolshopApi
+> {
+  private ownerCustomer?: Promise<NewCustomer>;
+  private otherCustomer?: Promise<NewCustomer>;
+
+  constructor(private readonly deps: ContextDeps) {}
+
+  get testData(): TestData {
+    return this.deps.testData;
+  }
+
+  get adminApi(): ToolshopApi {
+    return this.deps.adminApi;
+  }
+
+  owner(): Promise<NewCustomer> {
+    this.ownerCustomer ??= this.deps.testData.customer();
+    return this.ownerCustomer;
+  }
+
+  private other(): Promise<NewCustomer> {
+    this.otherCustomer ??= this.deps.testData.customer();
+    return this.otherCustomer;
+  }
+
+  async actor(name: ToolshopActor): Promise<ToolshopApi> {
+    switch (name) {
+      case 'anonymous':
+        return this.deps.api;
+      case 'admin':
+        return this.deps.adminApi;
+      case 'owner':
+        return (await this.owner()).api;
+      case 'other-user':
+      case 'customer':
+        return (await this.other()).api;
+    }
+  }
+
+  async invoice(): Promise<OwnedInvoice> {
+    const owner = await this.owner();
+    const { invoice, input } = await this.deps.testData.order(owner);
+    return { owner, id: invoice.id, invoiceNumber: invoice.invoice_number, input };
+  }
+
+  /** An invoice with its PDF generated, so a refused download means something. */
+  async invoiceWithPdf(): Promise<OwnedInvoice> {
+    const invoice = await this.invoice();
+    await this.deps.testData.generatedPdf(invoice.owner, invoice.invoiceNumber);
+    return invoice;
+  }
+
+  async favorite(): Promise<OwnedFavorite> {
+    const owner = await this.owner();
+    const favorite = await owner.api.favorites.create(await this.deps.testData.seededProductId());
+    return { owner, favorite };
+  }
+
+  async message(): Promise<OwnedMessage> {
+    const owner = await this.owner();
+    const message = await owner.api.messages.create(buildMessage());
+    return { owner, message };
+  }
+}

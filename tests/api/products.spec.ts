@@ -25,7 +25,8 @@ test.describe('Products API', { tag: '@api' }, () => {
   test('a page beyond the last one is empty', async ({ api }) => {
     const { last_page } = await api.products.list();
 
-    const beyond = await api.products.list({ page: last_page + 1 });
+    // Well past the end, because parallel tests can add a page between these two calls.
+    const beyond = await api.products.list({ page: last_page + 1_000 });
 
     expect(beyond.data).toEqual([]);
     expect(beyond.from).toBeNull();

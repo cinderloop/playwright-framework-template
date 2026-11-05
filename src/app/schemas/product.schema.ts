@@ -51,4 +51,5 @@ export interface ProductQuery {
   sort?: `${'name' | 'price'},${'asc' | 'desc'}`;
   by_category?: string;
   by_brand?: string;
+  is_rental?: boolean;
 }

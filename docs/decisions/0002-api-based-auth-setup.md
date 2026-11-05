@@ -1,6 +1,6 @@
 # 0002: Log in through the API in a setup project
 
-**Status:** Accepted
+**Status:** Superseded by [ADR 0015](0015-sign-in-per-test.md)
 
 ## Context
 

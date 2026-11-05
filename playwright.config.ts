@@ -8,13 +8,18 @@ const forAgents = !!process.env.PW_AGENTS;
 // Allure results are opt-in (ALLURE=1) so everyday runs only write the HTML report.
 const withAllure = !!process.env.ALLURE;
 
-// Browser projects run only after the API/UI health check and the per-role
-// login have succeeded. API tests run once, without a browser.
-const setupDependencies = ['setup'];
+// Everything runs only after the API/UI health check has passed.
+const healthCheck = ['health'];
 // API, accessibility and visual tests have dedicated projects below.
 const browserTests = {
-  testIgnore: ['**/tests/api/**', '**/tests/a11y/**', '**/tests/visual/**', '**/tests/agents/**'],
-  dependencies: setupDependencies,
+  testIgnore: [
+    '**/tests/api/**',
+    '**/tests/a11y/**',
+    '**/tests/contract/**',
+    '**/tests/visual/**',
+    '**/tests/agents/**',
+  ],
+  dependencies: healthCheck,
 };
 
 export default defineConfig({
@@ -48,14 +53,27 @@ export default defineConfig({
 
   projects: [
     { name: 'health', testMatch: /health\.setup\.ts/ },
-    { name: 'setup', testMatch: /auth\.setup\.ts/, dependencies: ['health'] },
-    { name: 'api', testDir: './tests/api', dependencies: ['health'] },
+    {
+      name: 'api',
+      testDir: './tests/api',
+      // Traces hold raw requests, so they would put passwords and tokens in the
+      // report. The redacted `api-exchanges` attachment replaces them here.
+      use: { trace: 'off' },
+      dependencies: ['health'],
+    },
+    {
+      // Compares live responses with the OpenAPI spec (npm run check:openapi).
+      name: 'contract',
+      testDir: './tests/contract',
+      use: { trace: 'off' },
+      dependencies: ['health'],
+    },
     {
       // axe results and ARIA trees are checked once, on desktop Chromium.
       name: 'a11y',
       testDir: './tests/a11y',
       use: { ...devices['Desktop Chrome'] },
-      dependencies: setupDependencies,
+      dependencies: healthCheck,
     },
     {
       // Baselines are Linux/Chromium only (generated in the Playwright Docker
@@ -70,7 +88,7 @@ export default defineConfig({
           maxDiffPixelRatio: 0.01,
         },
       },
-      dependencies: setupDependencies,
+      dependencies: healthCheck,
     },
 
     ...(forAgents

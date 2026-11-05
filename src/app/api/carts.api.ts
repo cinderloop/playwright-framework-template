@@ -17,7 +17,7 @@ export class CartsApi extends BaseApiClient {
     return this.parse(await this.getResponse(cartId), cartSchema);
   }
 
-  addItemResponse(cartId: string, productId: string, quantity: number): Promise<APIResponse> {
+  addItemResponse(cartId: string, productId: string, quantity: unknown): Promise<APIResponse> {
     return this.send('POST', `/carts/${cartId}`, { data: { product_id: productId, quantity } });
   }
 
@@ -28,10 +28,18 @@ export class CartsApi extends BaseApiClient {
     );
   }
 
-  async updateQuantity(cartId: string, productId: string, quantity: number): Promise<void> {
-    const response = await this.send('PUT', `/carts/${cartId}/product/quantity`, {
+  updateQuantityResponse(
+    cartId: string,
+    productId: string,
+    quantity: number,
+  ): Promise<APIResponse> {
+    return this.send('PUT', `/carts/${cartId}/product/quantity`, {
       data: { product_id: productId, quantity },
     });
+  }
+
+  async updateQuantity(cartId: string, productId: string, quantity: number): Promise<void> {
+    const response = await this.updateQuantityResponse(cartId, productId, quantity);
     await this.parse(response, cartUpdateResultSchema);
   }
 
@@ -42,7 +50,11 @@ export class CartsApi extends BaseApiClient {
     );
   }
 
+  deleteResponse(cartId: string): Promise<APIResponse> {
+    return this.send('DELETE', `/carts/${cartId}`);
+  }
+
   async delete(cartId: string): Promise<void> {
-    await this.expectStatus(await this.send('DELETE', `/carts/${cartId}`), 204);
+    await this.expectStatus(await this.deleteResponse(cartId), 204);
   }
 }
