@@ -12,6 +12,7 @@ Delete these:
 | ------------------------------------------------------------------ | --------------------------------------------------------------------- |
 | `src/app/*` (keep the folder structure as a guide if you like)     | Toolshop pages, components, API clients, schemas, data, a11y baseline |
 | `tests/ui`, `tests/e2e`, `tests/api`, `tests/a11y`, `tests/visual` | Toolshop specs, HAR and screenshot baselines                          |
+| `tests/contract`                                                   | The OpenAPI drift check                                               |
 | `specs/contact-form.md`                                            | Agent-generated test plan                                             |
 | `docker-compose.yml`, `docker/`                                    | The Toolshop stack                                                    |
 | `CHANGELOG.md` entries                                             | Start your own `[Unreleased]` section                                 |
@@ -158,12 +159,25 @@ Repeated UI parts (nav bars, cards, table rows) go in `src/app/components`.
   deployed environment, delete it and set `TEST_ENV` in the workflows.
 - **Secrets:** add your app's secrets to the repository and to the workflows' `env:` blocks.
 - **Smoke run:** keep `@smoke` small; PRs run it on Chromium and one mobile device.
-- **Report:** enable GitHub Pages (Source: **GitHub Actions**) for the nightly report.
+- **Report:** enable GitHub Pages (Source: **GitHub Actions**) for the nightly report. Traces from
+  retried browser tests are part of it, and they hold passwords and tokens. Do not publish it if
+  your test accounts are real; see [api-testing.md](api-testing.md#how-the-layer-is-built).
 - **Renovate:** install the Renovate app, and remove the Toolshop rule from `renovate.json`.
 - **Health check:** update `tests/setup/health.setup.ts` with your app's health endpoint.
 
 ## 7. Optional parts
 
+- **Advanced API suites:** `tests/api/advanced` and `tests/contract` are examples, and you have three
+  choices:
+  - **Keep them** if your API needs this coverage, and rewrite them for your app. They only run with
+    `TEST_ENV=local`, so give yourself a disposable environment first.
+  - **Adapt parts.** [api-testing.md](api-testing.md#adapting-to-another-api) covers the authorization
+    matrix and the drift check. The helpers in `src/core` work on their own.
+  - **Delete them.** Remove both folders, `src/app/authorization`, `src/app/contract`,
+    `src/app/fixtures/authorization.fixture.ts` and its entry in `src/app/fixtures/index.ts`. Then
+    remove the `contract` project from `playwright.config.ts`, the `advanced` job from `nightly.yml`
+    (and from the `report` job's `needs`), and the `check:openapi` and `test:api:advanced` scripts.
+    `fast-check` can go too, with `checkProperty` in `src/core/utils`.
 - **Accessibility:** call `scanAccessibility` with your app's pages, and record known violations in
   `src/app/a11y/baseline.ts`, with a reason for each rule.
 - **Visual:** write specs in `tests/visual`, then run `npm run test:visual:update` to create the
@@ -173,5 +187,5 @@ Repeated UI parts (nav bars, cards, table rows) go in `src/app/components`.
 - **Playwright test agents:** update `tests/agents/seed.spec.ts` to open your app, then follow
   [ai-assisted-testing.md](ai-assisted-testing.md).
 - **Toolshop-specific workarounds:** these are documented where they live: the Redis cache, the
-  guest checkout for Clock tests, and the `retained-data` annotation. Delete the ones that do not
-  apply to your app.
+  `worker` service, the guest checkout for Clock tests, and the `retained-data` annotation. Delete
+  the ones that do not apply to your app.

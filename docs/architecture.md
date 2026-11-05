@@ -144,12 +144,14 @@ flowchart LR
   end
 
   subgraph Nightly["nightly.yml (02:00 UTC, manual)"]
-    shards["test × 4 shards<br/>all browsers<br/>minus @visual, @quarantine"]
+    shards["test × 4 shards<br/>all browsers<br/>minus @visual, @quarantine,<br/>@api-advanced, @contract"]
+    advanced["advanced<br/>@api-advanced, @contract<br/>no browsers"]
     visual["visual<br/>Playwright Docker image"]
     quarantine["quarantine<br/>non-blocking"]
     merge["report<br/>merge-reports + flaky summary"]
     pages["deploy-report<br/>GitHub Pages (main)"]
     shards --> merge
+    advanced --> merge
     visual --> merge
     quarantine --> merge
     merge --> pages

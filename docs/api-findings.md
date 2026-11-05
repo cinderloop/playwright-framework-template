@@ -13,6 +13,7 @@ phases add more.
 
 | ID   | Severity | Summary                                                  | Covered by                  |
 | ---- | -------- | -------------------------------------------------------- | --------------------------- |
+| F-01 | Critical | Anyone can wipe the database                             | Not called, see below       |
 | F-02 | Critical | Anyone can reset any account to a fixed password         | Known issue                 |
 | F-03 | Critical | Any customer can change any invoice's status and columns | Known issue, matrix         |
 | F-04 | High     | Owners can set an invoice's total and owner              | Known issue                 |
@@ -33,6 +34,8 @@ phases add more.
 | F-19 | Medium   | A cart can be checked out repeatedly                     | Known issue                 |
 | F-20 | Low      | An empty cart can be checked out                         | Known issue                 |
 | F-21 | Low      | Forgot-password reveals which emails are registered      | Known issue                 |
+| F-22 | Low      | REST serves a deleted product from its cache             | Reported, not asserted      |
+| F-23 | Low      | Admin passwords can be guessed without limit             | Not tested                  |
 | F-24 | Low      | Deleting an unknown user answers `500`                   | Worked around in cleanup    |
 | F-25 | Low      | The spec does not match the API                          | Reported by `check:openapi` |
 | F-26 | Low      | Parallel additions create duplicate cart rows            | Reported, not asserted      |
@@ -46,6 +49,17 @@ covered in `tests/api/advanced/tokens.spec.ts`.
 
 The Phase 0 reconnaissance tried these cases by hand and each returned `401`. That was a single
 manual check and nothing re-tests it, so a regression here would not be caught.
+
+## F-01: Anyone can wipe the database
+
+- **Endpoint:** `POST /refresh` (undocumented)
+- **Steps:** Send the request with no token.
+- **Expected:** `401`, or no such route outside development.
+- **Actual:** From the source, it runs `migrate:fresh --seed`, removes all invoice PDFs and flushes
+  the cache.
+- **Evidence:** The closure in `routes/api.php`. Read from the source only: it was never called,
+  because it would destroy data for every test running at the time.
+- **Intentional?** Probably, as a reset for a practice app. It would be critical anywhere else.
 
 ## F-02: Anyone can reset any account to a fixed password
 
@@ -256,6 +270,26 @@ manual check and nothing re-tests it, so a regression here would not be caught.
 - **Actual:** `200` and `422`.
 - **Evidence:** The request is validated with `exists:users,email`.
 - **Intentional?** Unlikely, though common.
+
+## F-22: REST serves a deleted product from its cache
+
+- **Endpoint:** `GET /products/{id}`
+- **Steps:** Delete a product through the GraphQL `deleteProduct` mutation, then read it through REST.
+- **Expected:** `404`.
+- **Actual:** `200` straight after the delete, although the database row is gone.
+- **Evidence:** REST writes clear the product cache, and the GraphQL mutation does not.
+- **Intentional?** No.
+- **Note:** Not asserted, because it depends on what is cached at the time.
+
+## F-23: Admin passwords can be guessed without limit
+
+- **Endpoint:** `POST /users/login`
+- **Steps:** Try wrong passwords against an admin account.
+- **Expected:** A lockout or a rate limit.
+- **Actual:** From the source, neither applies: lockout skips admins, and login has no rate limit.
+- **Evidence:** `UserService::login` checks `role != "admin"`, and only `/reports` is throttled. Read
+  from the source only, because trying it on the seeded admin would disturb other tests.
+- **Intentional?** Unlikely.
 
 ## F-24: Deleting an unknown user answers `500`
 

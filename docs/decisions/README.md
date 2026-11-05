@@ -19,3 +19,4 @@ follows from it. A new decision gets the next number. A reversed decision is mar
 | [0011](0011-no-consumer-driven-contract-testing.md) | Consumer-driven contract testing is out of scope |
 | [0012](0012-fast-check-for-property-tests.md)       | fast-check for property-based tests              |
 | [0013](0013-background-worker-in-the-stack.md)      | A background worker in the Toolshop stack        |
+| [0014](0014-advanced-api-layer-in-this-repo.md)     | Keep the advanced API layer in this repository   |

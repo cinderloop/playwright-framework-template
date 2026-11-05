@@ -6,6 +6,42 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-05
+
+An opt-in advanced API layer, and reusable API tooling in `src/core`.
+
+### Added
+
+- Redacted recording of API calls, attached to the report when a test fails or retries.
+- `npm run test:unit`: Vitest unit tests for pure core functions, run in PR checks.
+- A data-driven authorization matrix (`src/core/authorization`) with 124 Toolshop rows, covering REST
+  and GraphQL, including cross-user access.
+- Security-adjacent suites: mass assignment, sensitive data (`toNotExposeFields`), token handling,
+  account security, rate limiting and error format.
+- `npm run check:openapi`: compares live responses with the OpenAPI spec, reports drift, and detects
+  a changed spec. `npm run check:openapi:update` records a reviewed spec.
+- Property-based tests with fast-check (`checkProperty`, `PROPERTY_SEED`), plus concurrency,
+  idempotency and async flow suites.
+- Helpers: `pollUntil`, `markKnownIssue`, `skipUnless` and `localOnly`.
+- A `worker` service in `docker-compose.yml`, which generates invoice PDFs and drains the queue.
+- A nightly job for the advanced suites and the drift check, with results in the merged report.
+- `npm run test:api:advanced`.
+- `docs/api-testing.md`, `docs/api-findings.md`, `docs/api-recon.md` and ADRs 0007 to 0014.
+
+### Changed
+
+- `npm run test:api` no longer includes the advanced suites.
+- `npm run toolshop:seed` also removes generated PDFs and clears the cache.
+- `tests/ui/auth/role-access.spec.ts` signs in per test, because a full run can outlive a stored
+  five-minute token.
+- Traces are off for the `api` and `contract` projects, because they stored raw credentials. The
+  redacted `api-exchanges` attachment replaces them.
+
+### Fixed
+
+- `a page beyond the last one is empty` could fail when a parallel test added a page.
+- Error messages from API clients no longer quote secrets from a response body.
+
 ## [1.0.0] - 2026-10-15
 
 First stable release: all five phases of the build plan.
@@ -82,5 +118,6 @@ First stable release: all five phases of the build plan.
 - `docker-compose.yml` for a local Toolshop with healthchecks and a seed script, and a
   `Dockerfile` that runs the suite in the official Playwright image.
 
-[Unreleased]: https://github.com/cinderloop/playwright-framework-template/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/cinderloop/playwright-framework-template/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/cinderloop/playwright-framework-template/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/cinderloop/playwright-framework-template/releases/tag/v1.0.0
