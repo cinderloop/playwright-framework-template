@@ -12,3 +12,7 @@ node_modules/
 /.playwright-mcp/
 /allure-results/
 /allure-report/
+
+# Local planning docs (not for the repo)
+/docs/build_plan.md
+/docs/api-advanced-build-prompt.md
