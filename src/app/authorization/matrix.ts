@@ -13,8 +13,6 @@ import type { ToolshopActor, ToolshopAuthorizationContext } from './context';
  * Left out on purpose:
  * - Carts: they have no owner, so there is nothing to cross.
  * - Catalogue POST, PUT and PATCH: unauthenticated by design (F-07).
- * - PDF download and status: without a scheduler no PDF exists, so `404` would
- *   pass for the wrong reason. They arrive with the scheduler in Phase 5 (F-08).
  */
 
 type Entry<TResource> = MatrixEntry<
@@ -174,6 +172,34 @@ const invoices = [
       'other-user': {
         status: DENIED,
         knownIssue: issue('F-03', "a customer can change the status of anyone's invoice"),
+      },
+      admin: 200,
+    },
+  }),
+  row({
+    name: 'GET /invoices/{number}/download-pdf',
+    arrange: (context) => context.invoiceWithPdf(),
+    request: (client, { invoiceNumber }) => client.invoices.pdfResponse(invoiceNumber),
+    expectations: {
+      anonymous: 401,
+      owner: 200,
+      'other-user': {
+        status: DENIED,
+        knownIssue: issue('F-08', "any customer can download anyone's invoice PDF"),
+      },
+      admin: 200,
+    },
+  }),
+  row({
+    name: 'GET /invoices/{number}/download-pdf-status',
+    arrange: (context) => context.invoiceWithPdf(),
+    request: (client, { invoiceNumber }) => client.invoices.pdfStatusResponse(invoiceNumber),
+    expectations: {
+      anonymous: 401,
+      owner: 200,
+      'other-user': {
+        status: DENIED,
+        knownIssue: issue('F-08', "any customer can read the PDF status of anyone's invoice"),
       },
       admin: 200,
     },

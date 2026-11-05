@@ -314,7 +314,7 @@ As planned. Because the spec has no `required` lists, comparing Zod to the spec 
 Agreed by the owner on 2026-11-05.
 
 1. **GraphQL scope:** add a small set of GraphQL rows to the Phase 2 matrix, because GraphQL bypasses REST authorization (F-05) and a REST-only matrix would overstate access control.
-2. **PDF flow:** add a scheduler service to `docker-compose.yml` in Phase 5 so the flow runs for real. This also makes F-08 testable without manual steps. It runs `queue:work` every minute during tests, so stock levels will start changing, and the existing suite must be rechecked when it lands.
+2. **PDF flow:** add a background service to `docker-compose.yml` in Phase 5 so the flow runs for real. Phase 5 built this as a `worker` service rather than `schedule:run`, see ADR 0013. This also makes F-08 testable without manual steps. It runs `queue:work` every minute during tests, so stock levels will start changing, and the existing suite must be rechecked when it lands.
 3. **Expired-token test:** one slow `@api-advanced` test that uses `expect.poll` until the token returns `401`, about 5 minutes of nightly time, running alongside the other tests.
 4. **F-07:** treat unauthenticated catalogue writes as deliberate, not `known-issue` rows, and list them in the findings doc. `testData` depends on them and the spec documents them.
 

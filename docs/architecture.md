@@ -93,8 +93,9 @@ test = mergeTests(coreTest, configTest, apiTest, dataTest, pagesTest)
 2. The **`setup`** project logs in each role (`customer`, `admin`) **through the API** and writes
    the JWT into a storage state (`.auth/<role>.json`) the way the Angular app stores it in
    `localStorage`. No browser is involved, so this takes milliseconds.
-3. Specs opt into a role with `test.use({ storageState: authFile('customer') })`. Guests need
-   nothing.
+3. Specs can opt into a role with `test.use({ storageState: authFile('customer') })`. That only
+   works while the stored token lives. Toolshop's last five minutes, which a full run can outlast,
+   so its specs call `signInWithToken` with a fresh token instead (ADR 0002). Guests need nothing.
 4. Users created by a test (for example the checkout customer) are signed in with
    `signInWithToken(context, token)`, an init script that sets the same `localStorage` key.
 

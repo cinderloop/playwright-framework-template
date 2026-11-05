@@ -40,6 +40,10 @@ export class ProductsApi extends BaseApiClient {
     return this.parse(await this.createResponse(input), productSchema, 201);
   }
 
+  updateResponse(productId: string, input: Partial<ProductInput>): Promise<APIResponse> {
+    return this.send('PUT', `/products/${productId}`, { data: input });
+  }
+
   /** Requires an admin token. */
   deleteResponse(productId: string): Promise<APIResponse> {
     return this.send('DELETE', `/products/${productId}`);

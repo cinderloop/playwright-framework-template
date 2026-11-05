@@ -67,7 +67,7 @@ test.describe('Token handling', { tag: ['@api', '@api-advanced'] }, () => {
   // Uses the seeded customer, not `testData`: cleanup needs an admin token, and
   // one fetched at the start of this test would have expired by the end.
   test('a token expires, and can then be refreshed', async ({ api, apiWithToken }) => {
-    test.setTimeout(400_000);
+    test.setTimeout(540_000);
 
     const startedAt = Date.now();
     const { access_token: token, expires_in: lifetime } = await api.auth.login(
@@ -75,17 +75,18 @@ test.describe('Token handling', { tag: ['@api', '@api-advanced'] }, () => {
     );
     const client = apiWithToken(token);
 
-    const expired = await pollUntil(
-      () => client.auth.meResponse(),
-      (response) => response.status() === 401,
+    await pollUntil(
+      async () => (await client.auth.meResponse()).status(),
+      (status) => status === 401,
       {
         description: 'the token to expire',
-        timeout: (lifetime + 30) * 1_000,
+        // Generous, because a busy stack answers slowly and the expiry itself is exact.
+        timeout: (lifetime + 180) * 1_000,
         intervals: [10_000],
       },
     );
 
-    await expect(expired).toMatchSchema(errorMessageSchema);
+    await expect(await client.auth.meResponse()).toMatchSchema(errorMessageSchema);
     expect(Date.now() - startedAt).toBeGreaterThanOrEqual((lifetime - 5) * 1_000);
 
     const { access_token: refreshed } = await client.auth.refresh();

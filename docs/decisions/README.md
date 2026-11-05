@@ -17,3 +17,5 @@ follows from it. A new decision gets the next number. A reversed decision is mar
 | [0009](0009-403-or-404-for-cross-user-access.md)    | Accept 403 or 404 for cross-user access          |
 | [0010](0010-contract-drift-check.md)                | Compare live responses with the spec             |
 | [0011](0011-no-consumer-driven-contract-testing.md) | Consumer-driven contract testing is out of scope |
+| [0012](0012-fast-check-for-property-tests.md)       | fast-check for property-based tests              |
+| [0013](0013-background-worker-in-the-stack.md)      | A background worker in the Toolshop stack        |

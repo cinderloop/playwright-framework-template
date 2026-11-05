@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import type { APIResponse, TestInfo } from '@playwright/test';
-import type { CleanupQueue } from '@core/utils';
+import { pollUntil, type CleanupQueue } from '@core/utils';
 import type { ToolshopApi } from '@app/api';
 import type { Credentials } from '@app/config';
 import type {
@@ -17,6 +17,8 @@ import type {
   WithExtraFields,
 } from '@app/schemas';
 import { buildBrand, buildCategory, buildCustomer, buildProduct } from './builders';
+
+const PDF_WAIT = 150_000;
 
 export interface NewCustomer {
   user: User;
@@ -112,16 +114,17 @@ export class TestData {
   }
 
   /**
-   * A valid checkout request with a filled cart. It uses a seeded product because
-   * orders cannot be deleted, so a created product would be left behind by each one.
+   * A valid checkout request with a filled cart. It buys a seeded rental: orders
+   * cannot be deleted, so a created product would be left behind by each one, and
+   * rentals have no stock count, so orders cannot sell out the products UI tests open.
    */
   async orderInput(
     customer: NewCustomer,
     overrides: WithExtraFields<Partial<InvoiceInput>> = {},
   ): Promise<InvoiceInput> {
-    const { data } = await this.deps.api.products.list();
+    const { data } = await this.deps.api.products.list({ is_rental: true });
     const [product] = data;
-    if (!product) throw new Error('The catalog is empty; has Toolshop been seeded?');
+    if (!product) throw new Error('No rentals found; has Toolshop been seeded?');
 
     const cartId = await customer.api.carts.create();
     await customer.api.carts.addItem(cartId, product.id);
@@ -147,6 +150,23 @@ export class TestData {
   ): Promise<PlacedOrder> {
     const input = await this.orderInput(customer, overrides);
     return { invoice: await customer.api.invoices.create(input), input };
+  }
+
+  /**
+   * Waits for the worker to generate an invoice's PDF. A freshly seeded stack has
+   * about 200 invoices queued ahead of it, so the first one takes over a minute.
+   */
+  async generatedPdf({ api }: NewCustomer, invoiceNumber: string): Promise<void> {
+    this.deps.testInfo.setTimeout(PDF_WAIT + 60_000);
+    await pollUntil(
+      () => api.invoices.pdfStatus(invoiceNumber),
+      (status) => status === 'COMPLETED',
+      {
+        description: `the PDF of ${invoiceNumber} to be generated`,
+        timeout: PDF_WAIT,
+        intervals: [1_000, 2_000],
+      },
+    );
   }
 
   /** Deleting a user who is already gone answers 500, not 404 (F-24), so look first. */

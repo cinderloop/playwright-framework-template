@@ -19,19 +19,24 @@ phases add more.
 | F-05 | High     | GraphQL skips the REST authorization rules               | Known issue, matrix         |
 | F-06 | High     | Card number and CVV are returned by the API              | Known issue                 |
 | F-07 | High     | Catalogue writes need no token                           | Deliberate, not asserted    |
-| F-08 | High     | Any customer can download any invoice PDF                | Pending Phase 5             |
+| F-08 | High     | Any customer can download any invoice PDF                | Known issue, matrix         |
 | F-09 | High     | Customers can set their own account state                | Known issue                 |
 | F-10 | High     | Any customer can search all customers                    | Known issue, matrix         |
 | F-11 | Medium   | Any customer can read any favorite                       | Known issue, matrix         |
 | F-12 | Medium   | Any customer can reply to or close any message           | Known issue, matrix         |
 | F-13 | Medium   | Any customer can change product specs                    | Known issue, matrix         |
+| F-14 | Medium   | Failed checkouts leave empty invoices                    | Known issue                 |
 | F-15 | Medium   | Tokens survive a password change and a lockout           | Known issue                 |
 | F-16 | Medium   | `429` has no `Retry-After` header                        | Known issue                 |
 | F-17 | Medium   | Stack traces and SQL appear in error responses           | Known issue                 |
 | F-18 | Low      | Misleading responses to refused cross-user requests      | Accepted, matrix            |
+| F-19 | Medium   | A cart can be checked out repeatedly                     | Known issue                 |
+| F-20 | Low      | An empty cart can be checked out                         | Known issue                 |
 | F-21 | Low      | Forgot-password reveals which emails are registered      | Known issue                 |
 | F-24 | Low      | Deleting an unknown user answers `500`                   | Worked around in cleanup    |
 | F-25 | Low      | The spec does not match the API                          | Reported by `check:openapi` |
+| F-26 | Low      | Parallel additions create duplicate cart rows            | Reported, not asserted      |
+| F-27 | Low      | Registration depends on an external service              | Not asserted                |
 
 ## Coverage gap: tampered and forged tokens
 
@@ -116,11 +121,10 @@ manual check and nothing re-tests it, so a regression here would not be caught.
   sequential.
 - **Expected:** `403` or `404`.
 - **Actual:** `200` and the PDF.
-- **Evidence:** `InvoiceService::downloadPDF` checks only that the file exists. Reproduced by running
-  `invoice:generate` and `queue:work` by hand.
+- **Evidence:** `InvoiceService::downloadPDF` checks only that the file exists.
 - **Intentional?** Unlikely.
-- **Note:** Not in the matrix yet. Without a scheduler no PDF exists, so `404` would pass for the
-  wrong reason. Rows arrive with the scheduler service in Phase 5.
+- **Note:** Needs the `worker` service in `docker-compose.yml`. Without it no PDF exists, and a `404`
+  would prove nothing.
 
 ## F-09: Customers can set their own account state
 
@@ -171,6 +175,17 @@ manual check and nothing re-tests it, so a regression here would not be caught.
 - **Evidence:** `ProductSpecController` requires a token but no role. The spec lists only `apiAuth`.
 - **Intentional?** Possibly. The expectation here is an inference from the rest of the catalogue.
 
+## F-14: Failed checkouts leave empty invoices
+
+- **Endpoint:** `POST /invoices`
+- **Steps:** Check out with an unknown `cart_id`, or with `payment_details` as a string.
+- **Expected:** The request fails and nothing is stored.
+- **Actual:** `404` or `500`, but an invoice remains with null totals and no payment. It appears in
+  the customer's history, and its PDF job never finishes.
+- **Evidence:** `InvoiceService::createInvoice` saves the invoice before it looks up the cart, with no
+  transaction.
+- **Intentional?** No.
+
 ## F-15: Tokens survive a password change and a lockout
 
 - **Endpoint:** `POST /users/change-password`, `POST /users/login`
@@ -211,6 +226,27 @@ manual check and nothing re-tests it, so a regression here would not be caught.
   returns the empty result.
 - **Intentional?** Probably not, but harmless: nothing is changed or revealed. The matrix accepts
   these and proves that with a read-back. See ADR 0009.
+
+## F-19: A cart can be checked out repeatedly
+
+- **Endpoint:** `POST /invoices`
+- **Steps:** Check out the same `cart_id` twice, one after the other or in parallel.
+- **Expected:** One invoice. The second request is refused.
+- **Actual:** `201` both times and two invoices. In a parallel run, both invoices were also once
+  given the same `invoice_number`.
+- **Evidence:** The cart is neither deleted nor marked after checkout. `invoice_number` has no unique
+  index.
+- **Intentional?** Unlikely.
+- **Note:** The count is asserted. The duplicate number is not, because it depends on timing.
+
+## F-20: An empty cart can be checked out
+
+- **Endpoint:** `POST /invoices`
+- **Steps:** Create a cart, add nothing, and check it out.
+- **Expected:** `422`.
+- **Actual:** `201` and an invoice with a total of `0`.
+- **Evidence:** `InvoiceService::createInvoice` does not check for items.
+- **Intentional?** Unlikely.
 
 ## F-21: Forgot-password reveals which emails are registered
 
@@ -253,3 +289,28 @@ manual check and nothing re-tests it, so a regression here would not be caught.
 - **Evidence:** The `openapi-drift` attachment, and the job summary on nightly runs. The spec also has
   no `required` lists on its response schemas.
 - **Intentional?** No, but it is normal for hand-maintained annotations to fall behind the code.
+
+## F-26: Parallel additions create duplicate cart rows
+
+- **Endpoint:** `POST /carts/{id}`
+- **Steps:** Send several parallel requests adding the same product to an empty cart.
+- **Expected:** One row, with the combined quantity.
+- **Actual:** Two or three rows for that product, in all 12 trials of 4 parallel requests. The total
+  quantity stayed correct.
+- **Evidence:** `CartService::addItemToCart` uses `firstOrCreate` with no unique index on cart and
+  product. Once a row exists, parallel additions are safe.
+- **Intentional?** No, it is a race condition.
+- **Note:** Not asserted, because it depends on timing. The suite checks the total, which always
+  holds.
+
+## F-27: Registration depends on an external service
+
+- **Endpoint:** `POST /users/register`, `POST /users/change-password`
+- **Steps:** Register while `api.pwnedpasswords.com` is slow.
+- **Expected:** A local test stack does not depend on a third party.
+- **Actual:** The `uncompromised()` password rule calls that service, with a 30-second timeout.
+- **Evidence:** One `POST /users/register` exceeded the 10-second limit in about 960 test runs, while
+  the 26 tests running alongside it took 2.1 seconds at most. This is the likely cause, not a
+  confirmed one: the service's response time was not measured.
+- **Intentional?** Yes, the password check is deliberate. The effect on test runs is a side effect.
+- **Note:** CI's retries absorb it. A run with no internet access was not tried.

@@ -4,7 +4,7 @@
 #
 #   npm run toolshop:start  # up + seed: what you normally want
 #   npm run toolshop:up     # start containers and wait until all are healthy
-#   npm run toolshop:seed   # migrate:fresh --seed (resets all data)
+#   npm run toolshop:seed   # migrate:fresh --seed; clears generated PDFs and the cache
 #   npm run toolshop:down   # stop and remove containers + volumes
 #
 # UI:  http://localhost:4200
@@ -14,30 +14,55 @@
 # Upstream publishes only `latest`; bump the digests deliberately.
 name: toolshop
 
+# Shared by the API and its background worker, so they cannot drift apart.
+x-laravel: &laravel # Sprint 5 API, linux/amd64 only (runs under emulation on Apple Silicon).
+  image: testsmith/practice-software-testing-sprint5-api@sha256:881cb7ecd76477994728648c0c16f6e9d2beed0f0217734843a32a7bb92553f0
+  volumes:
+    - laravel-app-code:/var/www
+  depends_on:
+    mariadb:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+x-laravel-environment: &laravel-environment
+  PHP_OPCACHE_VALIDATE_TIMESTAMPS: 1
+  DB_PORT: 3306
+  DB_HOST: mariadb
+  host: localhost
+  DISABLE_LOGGING: 'true'
+  # The image defaults to the file cache, where every product/category/brand
+  # write flushes the whole store, including the cached auth user. Under
+  # parallel tests that makes valid tokens intermittently fail with 401.
+  # Redis supports cache tags, so writes flush only product entries.
+  CACHE_DRIVER: redis
+  REDIS_CLIENT: predis
+  REDIS_HOST: redis
+  # Upstream sends mail to a `mailcatcher` host this stack does not have. Queued
+  # mail keeps the mailer it was queued with, so the API needs this as well as
+  # the worker, or every message fails and blocks the queue until it times out.
+  MAIL_MAILER: array
+
 services:
   laravel-api:
-    # Sprint 5 API, linux/amd64 only (runs under emulation on Apple Silicon).
-    image: testsmith/practice-software-testing-sprint5-api@sha256:881cb7ecd76477994728648c0c16f6e9d2beed0f0217734843a32a7bb92553f0
-    environment:
-      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=1
-      - DB_PORT=3306
-      - DB_HOST=mariadb
-      - host=localhost
-      - DISABLE_LOGGING=true
-      # The image defaults to the file cache, where every product/category/brand
-      # write flushes the whole store, including the cached auth user. Under
-      # parallel tests that makes valid tokens intermittently fail with 401.
-      # Redis supports cache tags, so writes flush only product entries.
-      - CACHE_DRIVER=redis
-      - REDIS_CLIENT=predis
-      - REDIS_HOST=redis
-    volumes:
-      - laravel-app-code:/var/www
-    depends_on:
-      mariadb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    <<: *laravel
+    environment: *laravel-environment
+
+  # Generates invoice PDFs and drains the queue, which upstream does from cron.
+  # This is deliberately not `schedule:run`: that also runs `order:update`, which
+  # would move invoices through their statuses underneath the tests.
+  worker:
+    <<: *laravel
+    environment: *laravel-environment
+    command:
+      - sh
+      - -c
+      - |
+        while true; do
+          php artisan invoice:generate
+          php artisan queue:work --stop-when-empty --tries=1
+          sleep 5
+        done
 
   angular-ui:
     # Sprint 5 UI, linux/amd64 only.

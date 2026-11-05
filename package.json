@@ -39,7 +39,7 @@
     "check:docker-image": "node scripts/check-playwright-image.js",
     "docker:build": "docker build -t toolshop-tests .",
     "toolshop:up": "docker compose up -d --wait --wait-timeout 300",
-    "toolshop:seed": "docker compose exec -T laravel-api php artisan migrate:fresh --seed --force",
+    "toolshop:seed": "docker compose exec -T laravel-api sh -c 'php artisan migrate:fresh --seed --force && php artisan invoice:remove && php artisan cache:clear'",
     "toolshop:start": "npm run toolshop:up && npm run toolshop:seed",
     "toolshop:down": "docker compose down -v",
     "prepare": "husky"
@@ -64,6 +64,7 @@
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-import-x": "^4.17.1",
     "eslint-plugin-playwright": "^2.12.1",
+    "fast-check": "^4.10.2",
     "globals": "^17.13.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",

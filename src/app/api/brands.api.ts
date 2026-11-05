@@ -23,6 +23,10 @@ export class BrandsApi extends BaseApiClient {
     return this.parse(await this.createResponse(input), brandSchema, 201);
   }
 
+  updateResponse(brandId: string, input: BrandInput): Promise<APIResponse> {
+    return this.send('PUT', `/brands/${brandId}`, { data: input });
+  }
+
   /** Requires an admin token. */
   deleteResponse(brandId: string): Promise<APIResponse> {
     return this.send('DELETE', `/brands/${brandId}`);

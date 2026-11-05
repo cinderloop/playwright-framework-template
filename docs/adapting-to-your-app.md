@@ -147,8 +147,9 @@ Repeated UI parts (nav bars, cards, table rows) go in `src/app/components`.
 3. Make the auth setup produce a session for your app. If it keeps a token in `localStorage`, use
    `localStorageState(origin, { key: token })` as Toolshop does. If it uses cookies, save
    `request.storageState()` after an API login instead.
-4. Use it in a spec with `test.use({ storageState: authFile('viewer') })`. For API calls as that
-   role, add a fixture like `adminApi` in `src/app/fixtures/api.fixture.ts`.
+4. Use it in a spec with `test.use({ storageState: authFile('viewer') })`, if your sessions outlast
+   a full run. If they are short, sign in per test with `signInWithToken` instead (ADR 0002). For
+   API calls as that role, add a fixture like `adminApi` in `src/app/fixtures/api.fixture.ts`.
 
 ## 6. Point CI at your app
 

@@ -7,5 +7,7 @@ export { endpoint, holdRequests } from './network';
 export type { HeldRequests } from './network';
 export { pollUntil } from './poll';
 export type { PollOptions } from './poll';
+export { checkProperty } from './property';
+export type { PropertyOptions } from './property';
 export { isRunningInPlaywrightImage } from './runtime';
 export { uniqueSuffix } from './unique';

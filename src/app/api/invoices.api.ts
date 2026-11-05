@@ -4,10 +4,12 @@ import {
   createdInvoiceSchema,
   invoicePageSchema,
   invoiceSchema,
+  pdfStatusSchema,
   type CreatedInvoice,
   type Invoice,
   type InvoiceInput,
   type InvoiceStatus,
+  type PdfStatus,
   type WithExtraFields,
 } from '@app/schemas';
 
@@ -50,6 +52,20 @@ export class InvoicesApi extends BaseApiClient {
     input: WithExtraFields<Partial<InvoiceInput>>,
   ): Promise<APIResponse> {
     return this.send('PATCH', `/invoices/${invoiceId}`, { data: input });
+  }
+
+  pdfStatusResponse(invoiceNumber: string): Promise<APIResponse> {
+    return this.send('GET', `/invoices/${invoiceNumber}/download-pdf-status`);
+  }
+
+  /** Reads the body whatever the status, because `NOT_INITIATED` arrives as a 400. */
+  async pdfStatus(invoiceNumber: string): Promise<PdfStatus> {
+    const response = await this.pdfStatusResponse(invoiceNumber);
+    return pdfStatusSchema.parse(await response.json()).status;
+  }
+
+  pdfResponse(invoiceNumber: string): Promise<APIResponse> {
+    return this.send('GET', `/invoices/${invoiceNumber}/download-pdf`);
   }
 
   updateStatusResponse(

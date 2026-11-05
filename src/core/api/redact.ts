@@ -39,6 +39,11 @@ export interface Redactor {
   text(text: string): string;
 }
 
+function isPlainObject(value: object): boolean {
+  const prototype: unknown = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
 function normalise(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
@@ -65,6 +70,8 @@ export function createRedactor(options: RedactorOptions = {}): Redactor {
     if (value instanceof Uint8Array) return `[binary, ${String(value.byteLength)} bytes]`;
     if (Array.isArray(value)) return value.map(walk);
     if (typeof value === 'object' && value !== null) {
+      // Class instances such as an APIResponse are not data, and can be circular.
+      if (!isPlainObject(value)) return `[${value.constructor.name}]`;
       return Object.fromEntries(
         Object.entries(value).map(([key, entry]: [string, unknown]) => [
           key,

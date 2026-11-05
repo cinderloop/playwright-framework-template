@@ -77,6 +77,22 @@ describe('body', () => {
     expect(redactor.body(new Uint8Array(3))).toBe('[binary, 3 bytes]');
   });
 
+  it('names a class instance rather than walking into it', () => {
+    class ApiResponseLike {
+      self = this;
+    }
+
+    expect(redactor.body({ response: new ApiResponseLike() })).toEqual({
+      response: '[ApiResponseLike]',
+    });
+  });
+
+  it('handles an object with no prototype', () => {
+    const body = Object.assign(Object.create(null) as object, { password: 'x' });
+
+    expect(redactor.body(body)).toEqual({ password: REDACTED });
+  });
+
   it('leaves ordinary values untouched', () => {
     const body = { id: 1, in_stock: true, tags: ['a'], price: 9.99, missing: null };
     expect(redactor.body(body)).toEqual(body);

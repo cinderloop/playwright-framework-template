@@ -25,6 +25,11 @@ export const invoiceStatuses = [
   'COMPLETED',
 ] as const;
 
+/** `GET /invoices/{number}/download-pdf-status`, which answers 400 until generation starts. */
+export const pdfStatusSchema = z.object({
+  status: z.enum(['NOT_INITIATED', 'INITIATED', 'IN_PROGRESS', 'COMPLETED']),
+});
+
 export const invoiceNumberSchema = z.string().regex(/^INV-\d+$/);
 
 export const createdInvoiceSchema = z.object({
@@ -62,6 +67,7 @@ export const invoicePageSchema = paginated(invoiceSchema);
 
 export type Invoice = z.infer<typeof invoiceSchema>;
 export type CreatedInvoice = z.infer<typeof createdInvoiceSchema>;
+export type PdfStatus = z.infer<typeof pdfStatusSchema>['status'];
 export type PaymentMethod = (typeof paymentMethods)[number];
 export type InvoiceStatus = (typeof invoiceStatuses)[number];
 

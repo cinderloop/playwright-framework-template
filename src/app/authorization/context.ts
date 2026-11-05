@@ -81,6 +81,13 @@ export class ToolshopAuthorizationContext implements AuthorizationContext<
     return { owner, id: invoice.id, invoiceNumber: invoice.invoice_number, input };
   }
 
+  /** An invoice with its PDF generated, so a refused download means something. */
+  async invoiceWithPdf(): Promise<OwnedInvoice> {
+    const invoice = await this.invoice();
+    await this.deps.testData.generatedPdf(invoice.owner, invoice.invoiceNumber);
+    return invoice;
+  }
+
   async favorite(): Promise<OwnedFavorite> {
     const owner = await this.owner();
     const favorite = await owner.api.favorites.create(await this.seededProductId());
