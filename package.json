@@ -34,6 +34,8 @@
     "typecheck:core": "tsc --noEmit -p tsconfig.core.json",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "check:openapi": "playwright test --project=contract",
+    "check:openapi:update": "UPDATE_OPENAPI=1 playwright test --project=contract --grep fingerprint",
     "check:docker-image": "node scripts/check-playwright-image.js",
     "docker:build": "docker build -t toolshop-tests .",
     "toolshop:up": "docker compose up -d --wait --wait-timeout 300",

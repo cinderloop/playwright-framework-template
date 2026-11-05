@@ -13,7 +13,13 @@ const withAllure = !!process.env.ALLURE;
 const setupDependencies = ['setup'];
 // API, accessibility and visual tests have dedicated projects below.
 const browserTests = {
-  testIgnore: ['**/tests/api/**', '**/tests/a11y/**', '**/tests/visual/**', '**/tests/agents/**'],
+  testIgnore: [
+    '**/tests/api/**',
+    '**/tests/a11y/**',
+    '**/tests/contract/**',
+    '**/tests/visual/**',
+    '**/tests/agents/**',
+  ],
   dependencies: setupDependencies,
 };
 
@@ -54,6 +60,13 @@ export default defineConfig({
       testDir: './tests/api',
       // Traces hold raw requests, so they would put passwords and tokens in the
       // report. The redacted `api-exchanges` attachment replaces them here.
+      use: { trace: 'off' },
+      dependencies: ['health'],
+    },
+    {
+      // Compares live responses with the OpenAPI spec (npm run check:openapi).
+      name: 'contract',
+      testDir: './tests/contract',
       use: { trace: 'off' },
       dependencies: ['health'],
     },

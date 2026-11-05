@@ -11,26 +11,27 @@ Rows marked as known issues assert the correct behaviour with `test.fail()` and 
 `known-issue` annotation. They stay green while the defect exists and go red when it changes. Later
 phases add more.
 
-| ID   | Severity | Summary                                                  | Covered by               |
-| ---- | -------- | -------------------------------------------------------- | ------------------------ |
-| F-02 | Critical | Anyone can reset any account to a fixed password         | Known issue              |
-| F-03 | Critical | Any customer can change any invoice's status and columns | Known issue, matrix      |
-| F-04 | High     | Owners can set an invoice's total and owner              | Known issue              |
-| F-05 | High     | GraphQL skips the REST authorization rules               | Known issue, matrix      |
-| F-06 | High     | Card number and CVV are returned by the API              | Known issue              |
-| F-07 | High     | Catalogue writes need no token                           | Deliberate, not asserted |
-| F-08 | High     | Any customer can download any invoice PDF                | Pending Phase 5          |
-| F-09 | High     | Customers can set their own account state                | Known issue              |
-| F-10 | High     | Any customer can search all customers                    | Known issue, matrix      |
-| F-11 | Medium   | Any customer can read any favorite                       | Known issue, matrix      |
-| F-12 | Medium   | Any customer can reply to or close any message           | Known issue, matrix      |
-| F-13 | Medium   | Any customer can change product specs                    | Known issue, matrix      |
-| F-15 | Medium   | Tokens survive a password change and a lockout           | Known issue              |
-| F-16 | Medium   | `429` has no `Retry-After` header                        | Known issue              |
-| F-17 | Medium   | Stack traces and SQL appear in error responses           | Known issue              |
-| F-18 | Low      | Misleading responses to refused cross-user requests      | Accepted, matrix         |
-| F-21 | Low      | Forgot-password reveals which emails are registered      | Known issue              |
-| F-24 | Low      | Deleting an unknown user answers `500`                   | Worked around in cleanup |
+| ID   | Severity | Summary                                                  | Covered by                  |
+| ---- | -------- | -------------------------------------------------------- | --------------------------- |
+| F-02 | Critical | Anyone can reset any account to a fixed password         | Known issue                 |
+| F-03 | Critical | Any customer can change any invoice's status and columns | Known issue, matrix         |
+| F-04 | High     | Owners can set an invoice's total and owner              | Known issue                 |
+| F-05 | High     | GraphQL skips the REST authorization rules               | Known issue, matrix         |
+| F-06 | High     | Card number and CVV are returned by the API              | Known issue                 |
+| F-07 | High     | Catalogue writes need no token                           | Deliberate, not asserted    |
+| F-08 | High     | Any customer can download any invoice PDF                | Pending Phase 5             |
+| F-09 | High     | Customers can set their own account state                | Known issue                 |
+| F-10 | High     | Any customer can search all customers                    | Known issue, matrix         |
+| F-11 | Medium   | Any customer can read any favorite                       | Known issue, matrix         |
+| F-12 | Medium   | Any customer can reply to or close any message           | Known issue, matrix         |
+| F-13 | Medium   | Any customer can change product specs                    | Known issue, matrix         |
+| F-15 | Medium   | Tokens survive a password change and a lockout           | Known issue                 |
+| F-16 | Medium   | `429` has no `Retry-After` header                        | Known issue                 |
+| F-17 | Medium   | Stack traces and SQL appear in error responses           | Known issue                 |
+| F-18 | Low      | Misleading responses to refused cross-user requests      | Accepted, matrix            |
+| F-21 | Low      | Forgot-password reveals which emails are registered      | Known issue                 |
+| F-24 | Low      | Deleting an unknown user answers `500`                   | Worked around in cleanup    |
+| F-25 | Low      | The spec does not match the API                          | Reported by `check:openapi` |
 
 ## Coverage gap: tampered and forged tokens
 
@@ -230,3 +231,25 @@ manual check and nothing re-tests it, so a regression here would not be caught.
 - **Intentional?** No, it looks like an oversight.
 - **Note:** `TestData` checks that a customer exists before deleting them, rather than treating
   `500` as success.
+
+## F-25: The spec does not match the API
+
+- **Endpoint:** Many. `npm run check:openapi` lists every difference.
+- **Steps:** Run the check. On Toolshop API 5.0.0, 22 of the 39 sampled responses differ from the spec.
+- **Expected:** The spec describes what the API returns.
+- **Actual:** The main patterns are:
+  - **Wrong success status:** `POST /products`, `/invoices`, `/favorites` and
+    `/messages/{id}/reply` return `201`, documented as `200`.
+  - **Undocumented errors:** `401` on login, `422` on forgot-password, and the `500`s from F-17 and
+    F-24.
+  - **Wrong body shape:** `POST /messages` documents `{success}` but returns the message.
+    `PUT /carts/{id}/product/quantity` documents `success` but returns `result`.
+    `GET /messages/{id}` returns an array for an unknown id.
+  - **Undocumented fields:** `payment` and `eco_discount_*` on invoices, `specs` on products, and
+    everything but `id` on carts.
+  - **Documented but absent fields:** `enabled` and `failed_login_attempts` on users, `sub_categories`
+    outside the tree, and `slug` on nested brands.
+  - **Null not documented:** `co2_rating`, `status_message` and the invoice discount fields.
+- **Evidence:** The `openapi-drift` attachment, and the job summary on nightly runs. The spec also has
+  no `required` lists on its response schemas.
+- **Intentional?** No, but it is normal for hand-maintained annotations to fall behind the code.
