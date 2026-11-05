@@ -118,7 +118,12 @@ export function createRedactor(options: RedactorOptions = {}): Redactor {
 function keyValuePattern(keys: readonly string[]): RegExp {
   const names = keys.map((key) => key.split('').join('[-_]?')).join('|');
   const value = String.raw`"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|[^&\s,;}]+`;
-  return new RegExp(String.raw`([\w-]*(?:${names})[\w-]*)(["']?\s*[=:]\s*)(?:${value})`, 'gi');
+  // The lookbehind starts each match at the beginning of a word. Without it, a long
+  // run of word characters is rescanned from every position, which takes minutes.
+  return new RegExp(
+    String.raw`(?<![\w-])([\w-]*(?:${names})[\w-]*)(["']?\s*[=:]\s*)(?:${value})`,
+    'gi',
+  );
 }
 
 /** Redactor with the default key list, for code that has no recorder to ask. */

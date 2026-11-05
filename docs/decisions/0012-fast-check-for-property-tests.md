@@ -13,7 +13,7 @@ and reduced to something readable.
 
 Use [fast-check](https://fast-check.dev) for the property tests in `tests/api/advanced/`.
 
-- It has TypeScript types, async properties and shrinking, and no runtime dependencies.
+- It has TypeScript types, async properties and shrinking, and only one runtime dependency.
 - `checkProperty` in `src/core/utils` wraps it. Each run costs real API calls, so runs are bounded (20
   by default). The seed is recorded as a `property-seed` annotation, and also appears in the failure.
 - To repeat a failure, run the test with `PROPERTY_SEED=<seed>`. Failing inputs are replayed exactly.

@@ -17,9 +17,10 @@ Declare the rules as data and generate one test per actor per operation.
   nothing about Toolshop. `src/app/authorization/matrix.ts` is the Toolshop table.
 - A row states the **correct** behaviour. A defect is a `knownIssue` on that row, carrying the
   finding it belongs to and the wrong status seen today.
-- `test.fail()` is applied after the request, and only if the status is the recorded one or an
-  accepted one. Declared up front it would hide faults: a broken arrange step or a new `500` would
-  count as the expected failure, and the test would stay green.
+- `test.fail()` is decided after the request, so that a known issue can only excuse its own defect.
+  Declared up front it would hide faults: a broken arrange step or a new `500` would count as the
+  expected failure, and the test would stay green. Only the recorded status, or a failed assertion in
+  `verify`, counts as the defect. An error in `verify`, such as an unparseable body, stays a failure.
 - A fixed defect turns the test red as an unexpected pass, which prompts removing the `knownIssue`.
 - Statuses cannot prove everything, so a row can add `verify`. Refused writes read the resource
   back, and GraphQL rows read the body because refusals there are `200`.

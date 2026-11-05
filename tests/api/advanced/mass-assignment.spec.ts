@@ -1,9 +1,7 @@
 import { expect, test } from '@app/fixtures';
 import { config } from '@app/config';
-import { buildMessage, buildProfileUpdate } from '@app/data';
+import { buildMessage, buildProfileUpdate, UNKNOWN_ID } from '@app/data';
 import { localOnly, markKnownIssue } from '@core/utils';
-
-const UNUSED_ULID = '01ZZZZZZZZZZZZZZZZZZZZZZZZ';
 
 // Each test sends fields a client should not control, then checks the result by
 // reading the resource back: a 2xx alone says nothing about what was stored.
@@ -22,9 +20,9 @@ test.describe('Mass assignment', { tag: ['@api', '@api-advanced'] }, () => {
     });
 
     test('ignores a client-chosen id', async ({ testData }) => {
-      const { user } = await testData.registered({ id: UNUSED_ULID });
+      const { user } = await testData.registered({ id: UNKNOWN_ID });
 
-      expect(user.id).not.toBe(UNUSED_ULID);
+      expect(user.id).not.toBe(UNKNOWN_ID);
     });
 
     test('cannot set account state', async ({ testData, adminApi }) => {

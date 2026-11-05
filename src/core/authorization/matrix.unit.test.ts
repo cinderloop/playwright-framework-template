@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildMatrix,
   expandEntry,
-  isExplainedByKnownIssue,
+  isAssertionFailure,
   type AuthorizationContext,
   type KnownIssue,
   type MatrixEntry,
@@ -172,22 +172,18 @@ describe('buildMatrix', () => {
   });
 });
 
-describe('isExplainedByKnownIssue', () => {
-  const row = { statuses: [403, 404], knownIssue: issue };
+describe('isAssertionFailure', () => {
+  it('recognises a failed assertion', () => {
+    const failure = Object.assign(new Error('expected'), { matcherResult: { pass: false } });
 
-  it('is true for the recorded defect', () => {
-    expect(isExplainedByKnownIssue(row, 200)).toBe(true);
+    expect(isAssertionFailure(failure)).toBe(true);
   });
 
-  it('is true once fixed, so the expected failure flips to a reported pass', () => {
-    expect(isExplainedByKnownIssue(row, 403)).toBe(true);
+  it('does not excuse an ordinary error, such as a broken response', () => {
+    expect(isAssertionFailure(new SyntaxError('Unexpected token'))).toBe(false);
   });
 
-  it('is false for any other status, so a new fault is not excused', () => {
-    expect(isExplainedByKnownIssue(row, 500)).toBe(false);
-  });
-
-  it('is false for a row with no known issue', () => {
-    expect(isExplainedByKnownIssue({ statuses: [200] }, 500)).toBe(false);
+  it.each([null, undefined, 'failed'])('handles the non-error %s', (value) => {
+    expect(isAssertionFailure(value)).toBe(false);
   });
 });

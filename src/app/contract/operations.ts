@@ -8,6 +8,7 @@ import {
   buildMessage,
   buildProduct,
   type NewCustomer,
+  UNKNOWN_ID,
 } from '@app/data';
 import {
   brandListSchema,
@@ -74,8 +75,6 @@ export interface CoveredOperation {
   undo?: (clients: ContractClients, id: string) => Promise<unknown>;
 }
 
-const UNUSED_ULID = '01ZZZZZZZZZZZZZZZZZZZZZZZZ';
-
 /** Every operation the framework's clients and schemas rely on. */
 export const coveredOperations: readonly CoveredOperation[] = [
   // Catalogue
@@ -91,7 +90,7 @@ export const coveredOperations: readonly CoveredOperation[] = [
     method: 'GET',
     path: '/products/{productId}',
     scenario: 'unknown id',
-    values: () => ({ productId: UNUSED_ULID }),
+    values: () => ({ productId: UNKNOWN_ID }),
     schema: errorResponseSchema,
   },
   {
@@ -223,7 +222,7 @@ export const coveredOperations: readonly CoveredOperation[] = [
     path: '/users/{userId}',
     scenario: 'unknown id',
     as: 'admin',
-    values: () => ({ userId: UNUSED_ULID }),
+    values: () => ({ userId: UNKNOWN_ID }),
   },
   { method: 'GET', path: '/users/refresh', scenario: 'no token' },
 
@@ -279,7 +278,7 @@ export const coveredOperations: readonly CoveredOperation[] = [
     path: '/messages/{messageId}',
     scenario: 'unknown id',
     as: 'customer',
-    values: () => ({ messageId: UNUSED_ULID }),
+    values: () => ({ messageId: UNKNOWN_ID }),
   },
   {
     method: 'POST',

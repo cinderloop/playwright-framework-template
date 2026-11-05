@@ -1,10 +1,8 @@
 import { expect, test } from '@app/fixtures';
 import { config } from '@app/config';
-import { buildCustomer, buildProfileUpdate } from '@app/data';
+import { buildCustomer, buildProfileUpdate, UNKNOWN_ID } from '@app/data';
 import { errorResponseSchema } from '@app/schemas';
 import { localOnly, markKnownIssue } from '@core/utils';
-
-const UNUSED_ULID = '01ZZZZZZZZZZZZZZZZZZZZZZZZ';
 
 // Toolshop has several 4xx shapes, so the contract is a family of them
 // (`errorResponseSchema`), not one schema. An unknown shape fails here.
@@ -45,7 +43,7 @@ test.describe('Error format', { tag: ['@api', '@api-advanced'] }, () => {
   });
 
   test('404 for an unknown resource', async ({ api }) => {
-    const response = await api.products.getResponse(UNUSED_ULID);
+    const response = await api.products.getResponse(UNKNOWN_ID);
 
     expect(response.status()).toBe(404);
     await expect(response).toMatchSchema(errorResponseSchema);
@@ -77,7 +75,7 @@ test.describe('Error format', { tag: ['@api', '@api-advanced'] }, () => {
   test('422 as a message and errors', async ({ api }) => {
     const cartId = await api.carts.create();
 
-    const response = await api.carts.addItemResponse(cartId, UNUSED_ULID, 1);
+    const response = await api.carts.addItemResponse(cartId, UNKNOWN_ID, 1);
 
     expect(response.status()).toBe(422);
     await expect(response).toMatchSchema(errorResponseSchema);

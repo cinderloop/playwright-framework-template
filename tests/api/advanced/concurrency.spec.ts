@@ -1,5 +1,6 @@
 import { expect, test } from '@app/fixtures';
 import { config } from '@app/config';
+import { UNKNOWN_ID } from '@app/data';
 import { localOnly, markKnownIssue } from '@core/utils';
 
 // Parallel requests with Promise.all and fresh data per test. Nothing here depends
@@ -9,7 +10,7 @@ test.describe('Concurrency', { tag: ['@api', '@api-advanced'] }, () => {
 
   test('parallel quantity updates leave one of the submitted values', async ({ testData, api }) => {
     const product = await testData.product();
-    const cartId = await api.carts.create();
+    const cartId = await testData.cart();
     await api.carts.addItem(cartId, product.id, 1);
     const quantities = [2, 3, 4, 5, 6];
 
@@ -25,7 +26,7 @@ test.describe('Concurrency', { tag: ['@api', '@api-advanced'] }, () => {
 
   test('parallel additions of the same product are all counted', async ({ testData, api }) => {
     const product = await testData.product();
-    const cartId = await api.carts.create();
+    const cartId = await testData.cart();
     await api.carts.addItem(cartId, product.id, 1);
 
     await Promise.all([1, 2, 3, 4].map(() => api.carts.addItemResponse(cartId, product.id, 1)));
@@ -37,7 +38,7 @@ test.describe('Concurrency', { tag: ['@api', '@api-advanced'] }, () => {
 
   test('parallel first additions to an empty cart keep the total', async ({ testData, api }) => {
     const product = await testData.product();
-    const cartId = await api.carts.create();
+    const cartId = await testData.cart();
 
     await Promise.all([1, 2, 3, 4].map(() => api.carts.addItemResponse(cartId, product.id, 1)));
 
@@ -88,7 +89,7 @@ test.describe('Checkout integrity', { tag: ['@api', '@api-advanced'] }, () => {
 
     const response = await customer.api.invoices.createResponse({
       ...input,
-      cart_id: '01ZZZZZZZZZZZZZZZZZZZZZZZZ',
+      cart_id: UNKNOWN_ID,
     });
     expect(response.status()).toBe(404);
     const history = await customer.api.invoices.listResponse();

@@ -26,16 +26,20 @@ An opt-in advanced API layer, and reusable API tooling in `src/core`.
 - A `worker` service in `docker-compose.yml`, which generates invoice PDFs and drains the queue.
 - A nightly job for the advanced suites and the drift check, with results in the merged report.
 - `npm run test:api:advanced`.
-- `docs/api-testing.md`, `docs/api-findings.md`, `docs/api-recon.md` and ADRs 0007 to 0014.
+- `docs/api-testing.md`, `docs/api-findings.md`, `docs/api-recon.md` and ADRs 0007 to 0015.
 
 ### Changed
 
 - `npm run test:api` no longer includes the advanced suites.
 - `npm run toolshop:seed` also removes generated PDFs and clears the cache.
-- `tests/ui/auth/role-access.spec.ts` signs in per test, because a full run can outlive a stored
-  five-minute token.
+- Tests sign in per test with the `signInAs` fixture, because a full run can outlive a stored
+  five-minute token (ADR 0015).
 - Traces are off for the `api` and `contract` projects, because they stored raw credentials. The
   redacted `api-exchanges` attachment replaces them.
+
+### Removed
+
+- The `setup` project, `authFile` and the storage-state helpers in `src/core/auth`.
 
 ### Fixed
 

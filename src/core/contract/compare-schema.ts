@@ -58,8 +58,10 @@ export function compareToSchema(
   schema: JsonSchema,
   resolveRef: ResolveRef,
 ): FieldDrift[] {
-  const resolve = (candidate: JsonSchema): JsonSchema =>
-    candidate.$ref === undefined ? candidate : resolve(resolveRef(candidate.$ref));
+  const resolve = (candidate: JsonSchema): JsonSchema => {
+    const { $ref, ...siblings } = candidate;
+    return $ref === undefined ? candidate : { ...resolve(resolveRef($ref)), ...siblings };
+  };
 
   const flatten = (candidate: JsonSchema): JsonSchema => {
     const resolved = resolve(candidate);
@@ -77,14 +79,27 @@ export function compareToSchema(
     );
   };
 
+  /** The alternative the author most likely meant: right type first, then fewest differences. */
+  const closest = (results: FieldDrift[][], path: string): FieldDrift[] => {
+    const location = path === '' ? '(body)' : path;
+    const score = (drift: FieldDrift[]) =>
+      drift.some(({ kind, path: at }) => kind === 'type-mismatch' && at === location)
+        ? Number.MAX_SAFE_INTEGER
+        : drift.length;
+    return results.reduce((best, result) => (score(result) < score(best) ? result : best));
+  };
+
   const compare = (current: unknown, candidate: JsonSchema, path: string): FieldDrift[] => {
     const resolved = flatten(candidate);
 
-    const alternatives = resolved.oneOf ?? resolved.anyOf;
-    if (alternatives) {
-      // The closest alternative is the one the author most likely meant.
-      const results = alternatives.map((option) => compare(current, option, path));
-      return results.reduce((best, result) => (result.length < best.length ? result : best));
+    const { oneOf, anyOf, ...shared } = resolved;
+    const alternatives = oneOf ?? anyOf;
+    if (alternatives && alternatives.length > 0) {
+      // Each alternative applies together with whatever sits beside `oneOf`.
+      const results = alternatives.map((option) =>
+        compare(current, { allOf: [shared, option] }, path),
+      );
+      return closest(results, path);
     }
 
     const types = allowedTypes(resolved);

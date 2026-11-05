@@ -79,17 +79,47 @@ describe('compareOperation', () => {
   });
 
   it('treats a default response as documenting any status', () => {
-    const result = compareOperation(spec, { ...observed, path: '/any', status: 418 });
+    const result = compareOperation(spec, {
+      ...observed,
+      path: '/any',
+      status: 418,
+      body: undefined,
+    });
 
     expect(result.drift).toEqual([]);
   });
 
-  it('has nothing to compare when a response documents no body', () => {
-    expect(compareOperation(spec, { ...observed, status: 204 }).drift).toEqual([]);
+  it('finds nothing when neither the spec nor the response has a body', () => {
+    const { drift } = compareOperation(spec, { ...observed, status: 204, body: undefined });
+
+    expect(drift).toEqual([]);
   });
 
-  it('has nothing to compare when there is no JSON body', () => {
-    expect(compareOperation(spec, { ...observed, body: undefined }).drift).toEqual([]);
+  it('reports a body the spec does not document', () => {
+    const { drift } = compareOperation(spec, { ...observed, status: 204 });
+
+    expect(drift[0]?.kind).toBe('undocumented-body');
+  });
+
+  it('reports a documented body that is absent, or is not JSON', () => {
+    const { drift } = compareOperation(spec, { ...observed, body: undefined });
+
+    expect(drift[0]?.kind).toBe('missing-body');
+  });
+
+  it('understands a status range', () => {
+    const ranged = {
+      paths: { '/x': { get: { responses: { '4XX': {} } } } },
+    } as unknown as OpenApiSpec;
+
+    const { drift } = compareOperation(ranged, {
+      ...observed,
+      path: '/x',
+      status: 404,
+      body: undefined,
+    });
+
+    expect(drift).toEqual([]);
   });
 
   it('fails clearly on a broken reference', () => {

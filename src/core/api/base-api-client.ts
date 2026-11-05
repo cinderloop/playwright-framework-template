@@ -1,7 +1,7 @@
 import type { APIRequestContext, APIResponse } from '@playwright/test';
 import { z } from 'zod';
 import type { ApiRecorder } from './api-recorder';
-import { defaultRedactor } from './redact';
+import { defaultRedactor, type Redactor } from './redact';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -100,7 +100,7 @@ export abstract class BaseApiClient {
     const result = schema.safeParse(await response.json());
     if (!result.success) {
       throw new ApiError(
-        `${requestLabel(response)} returned a body that does not match its schema:\n${z.prettifyError(result.error)}`,
+        `${this.requestLabel(response)} returned a body that does not match its schema:\n${z.prettifyError(result.error)}`,
         response.status(),
         await response.text(),
       );
@@ -108,12 +108,21 @@ export abstract class BaseApiClient {
     return result.data;
   }
 
+  private get redactor(): Redactor {
+    return this.options.recorder?.redactor ?? defaultRedactor;
+  }
+
+  private requestLabel(response: APIResponse): string {
+    const { pathname, search } = new URL(this.redactor.url(response.url()));
+    return `${pathname}${search}`;
+  }
+
   protected async expectStatus(response: APIResponse, expectedStatus: number): Promise<void> {
     if (response.status() !== expectedStatus) {
       const body = await response.text();
-      const redactor = this.options.recorder?.redactor ?? defaultRedactor;
+      const redacted = JSON.stringify(this.redactor.body(body));
       throw new ApiError(
-        `${requestLabel(response)} returned ${String(response.status())}, expected ${String(expectedStatus)}: ${redactor.text(body).slice(0, 500)}`,
+        `${this.requestLabel(response)} returned ${String(response.status())}, expected ${String(expectedStatus)}: ${redacted.slice(0, 500)}`,
         response.status(),
         body,
       );
@@ -127,9 +136,4 @@ function withQuery(url: string, params: RequestOptions['params']): string {
     result.searchParams.set(name, String(value));
   }
   return result.href;
-}
-
-function requestLabel(response: APIResponse): string {
-  const url = new URL(response.url());
-  return `${url.pathname}${url.search}`;
 }

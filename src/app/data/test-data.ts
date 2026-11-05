@@ -20,6 +20,9 @@ import { buildBrand, buildCategory, buildCustomer, buildProduct } from './builde
 
 const PDF_WAIT = 150_000;
 
+/** A well-formed id that no row has, for requests about something that does not exist. */
+export const UNKNOWN_ID = '01ZZZZZZZZZZZZZZZZZZZZZZZZ';
+
 export interface NewCustomer {
   user: User;
   credentials: Credentials;
@@ -90,6 +93,21 @@ export class TestData {
       this.deps.adminApi.products.deleteResponse(product.id),
     );
     return product;
+  }
+
+  /** An empty cart. It must go before its products, which it would otherwise keep alive. */
+  async cart(): Promise<string> {
+    const cartId = await this.deps.api.carts.create();
+    this.deleteLater(`cart ${cartId}`, () => this.deps.api.carts.deleteResponse(cartId));
+    return cartId;
+  }
+
+  /** A seeded product with no special cart rules. */
+  async seededProductId(): Promise<string> {
+    const { data } = await this.deps.api.products.list();
+    const product = data.find(({ name }) => name !== 'Thor Hammer');
+    if (!product) throw new Error('The catalog is empty; has Toolshop been seeded?');
+    return product.id;
   }
 
   /** Registers a new customer without signing in, so account state stays as registered. */

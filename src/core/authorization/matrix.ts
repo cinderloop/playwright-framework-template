@@ -141,15 +141,9 @@ export function buildMatrix<
 }
 
 /**
- * Whether a failure of this row is the recorded defect. A status that is neither
- * acceptable nor the one recorded means something else broke, so it must not be
- * excused. An acceptable status counts, so a fixed defect surfaces as an
- * unexpected pass.
+ * Whether an error is a failed assertion rather than something breaking. Only the
+ * former can be the defect a known issue records.
  */
-export function isExplainedByKnownIssue(
-  row: Pick<AuthorizationRow<string, unknown, never>, 'statuses' | 'knownIssue'>,
-  status: number,
-): boolean {
-  if (!row.knownIssue) return false;
-  return status === row.knownIssue.observedStatus || row.statuses.includes(status);
+export function isAssertionFailure(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'matcherResult' in error;
 }

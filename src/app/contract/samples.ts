@@ -23,7 +23,7 @@ export async function createSamples(
   }
 
   const [cartId, order, favorite, message] = await Promise.all([
-    anonymous.carts.create(),
+    testData.cart(),
     testData.order(customer),
     customer.api.favorites.create(firstProduct.id),
     customer.api.messages.create(buildMessage()),

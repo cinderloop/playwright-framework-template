@@ -133,6 +133,44 @@ describe('compareToSchema', () => {
     ]);
   });
 
+  it('prefers an alternative of the right type over one with fewer differences', () => {
+    const schema: JsonSchema = {
+      oneOf: [{ type: 'array' }, object({ a: {}, b: {}, c: {} })],
+    };
+
+    expect(compareToSchema({}, schema, resolve).map(({ kind }) => kind)).toEqual([
+      'missing-field',
+      'missing-field',
+      'missing-field',
+    ]);
+  });
+
+  it('honours `nullable` beside oneOf', () => {
+    const schema: JsonSchema = { nullable: true, oneOf: [{ $ref: '#/brand' }] };
+
+    expect(compareToSchema(null, schema, resolve)).toEqual([]);
+  });
+
+  it('honours `nullable` beside a reference', () => {
+    expect(compareToSchema(null, { $ref: '#/brand', nullable: true }, resolve)).toEqual([]);
+  });
+
+  it('keeps properties declared beside anyOf', () => {
+    const schema: JsonSchema = {
+      type: 'object',
+      properties: { id: {} },
+      anyOf: [{}, {}],
+    };
+
+    expect(compareToSchema({ id: 1, extra: 2 }, schema, resolve)).toEqual([
+      { kind: 'undocumented-field', path: 'extra', detail: 'not in the spec' },
+    ]);
+  });
+
+  it('treats an empty oneOf as saying nothing', () => {
+    expect(compareToSchema({ a: 1 }, { oneOf: [] }, resolve)).toEqual([]);
+  });
+
   it('does not compare an object with no documented properties', () => {
     expect(compareToSchema({ anything: 1 }, { type: 'object' }, resolve)).toEqual([]);
   });

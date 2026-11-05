@@ -124,15 +124,8 @@ test.describe('Validation properties', { tag: ['@api', '@api-advanced'] }, () =>
   localOnly(config.environment);
   test.describe.configure({ timeout: 60_000 });
 
-  async function seededProductId(api: ToolshopApi): Promise<string> {
-    const { data } = await api.products.list();
-    const product = data.find(({ name }) => name !== 'Thor Hammer');
-    if (!product) throw new Error('The catalog is empty; has Toolshop been seeded?');
-    return product.id;
-  }
-
-  test('a cart accepts every quantity from 1 to 99', async ({ api }) => {
-    const productId = await seededProductId(api);
+  test('a cart accepts every quantity from 1 to 99', async ({ api, testData }) => {
+    const productId = await testData.seededProductId();
 
     await checkProperty(
       asyncProperty(integer({ min: 1, max: 99 }), async (quantity) => {
@@ -148,8 +141,8 @@ test.describe('Validation properties', { tag: ['@api', '@api-advanced'] }, () =>
     );
   });
 
-  test('a cart rejects quantities out of range', async ({ api }) => {
-    const productId = await seededProductId(api);
+  test('a cart rejects quantities out of range', async ({ api, testData }) => {
+    const productId = await testData.seededProductId();
     const cartId = await api.carts.create();
 
     await checkProperty(
@@ -165,8 +158,8 @@ test.describe('Validation properties', { tag: ['@api', '@api-advanced'] }, () =>
     await api.carts.delete(cartId);
   });
 
-  test('a cart rejects malformed quantities', async ({ api }) => {
-    const productId = await seededProductId(api);
+  test('a cart rejects malformed quantities', async ({ api, testData }) => {
+    const productId = await testData.seededProductId();
     const cartId = await api.carts.create();
 
     await checkProperty(

@@ -305,13 +305,13 @@ manual check and nothing re-tests it, so a regression here would not be caught.
 ## F-25: The spec does not match the API
 
 - **Endpoint:** Many. `npm run check:openapi` lists every difference.
-- **Steps:** Run the check. On Toolshop API 5.0.0, 22 of the 39 sampled responses differ from the spec.
+- **Steps:** Run the check. On Toolshop API 5.0.0, 24 of the 39 sampled responses differ from the spec.
 - **Expected:** The spec describes what the API returns.
 - **Actual:** The main patterns are:
   - **Wrong success status:** `POST /products`, `/invoices`, `/favorites` and
     `/messages/{id}/reply` return `201`, documented as `200`.
   - **Undocumented errors:** `401` on login, `422` on forgot-password, and the `500`s from F-17 and
-    F-24.
+    F-24. Some `422`s are listed in the spec with no body, but return one.
   - **Wrong body shape:** `POST /messages` documents `{success}` but returns the message.
     `PUT /carts/{id}/product/quantity` documents `success` but returns `result`.
     `GET /messages/{id}` returns an array for an unknown id.

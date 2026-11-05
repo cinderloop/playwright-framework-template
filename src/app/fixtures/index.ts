@@ -5,6 +5,7 @@ import { authorizationTest } from './authorization.fixture';
 import { configTest } from './config.fixture';
 import { dataTest } from './data.fixture';
 import { pagesTest } from './pages.fixture';
+import { sessionTest } from './session.fixture';
 
 /** The `test` every Toolshop spec imports: core + config + API + test data + page objects. */
 export const test = mergeTests(
@@ -13,6 +14,7 @@ export const test = mergeTests(
   apiTest,
   dataTest,
   authorizationTest,
+  sessionTest,
   pagesTest,
 );
 export { expect } from '@core/fixtures';

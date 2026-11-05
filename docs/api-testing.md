@@ -35,7 +35,8 @@ leaked fields has to read the raw response, not a parsed one.
 | `apiRecorder`          | Redacted log of the test's API calls                       |
 | `authorizationContext` | Actors and arrange steps for one matrix row                |
 
-Toolshop tokens last five minutes, so these fixtures sign in per test.
+Toolshop tokens last five minutes, so these fixtures sign in per test. Browser tests use `signInAs`
+for the same reason ([ADR 0015](decisions/0015-sign-in-per-test.md)).
 
 **Diagnostics.** Every client call is recorded by `ApiRecorder`, with passwords, tokens, cookies and
 card details masked as they arrive. When a test fails or retries, the log is attached to the report
@@ -114,7 +115,7 @@ per user, so it uses a new customer and leaves the admin's allowance alone.
 
 `npm run check:openapi` compares real responses with the spec, and prints a report. A JSON Schema
 validator would accept almost anything, because the spec has no `required` lists, so a small
-comparison reports undocumented and missing fields instead. See
+comparison reports undocumented and missing fields and bodies instead. See
 [ADR 0010](decisions/0010-contract-drift-check.md).
 
 Only a changed spec or a broken framework schema fails the check. Drift itself is a finding. After
@@ -162,7 +163,8 @@ has a `known-issue` annotation and an entry in [api-findings.md](api-findings.md
 
 The placing matters. `test.fail()` at the top of a test would also excuse broken setup, so:
 
-- The matrix applies it after the request, and only for the status recorded on that row.
+- The matrix decides after the request. Only the status recorded on the row, or a failed assertion
+  in `verify`, counts as the defect. An unexpected status or a broken response stays a real failure.
 - Hand-written tests call `markKnownIssue` directly before the assertion that exposes the defect.
 
 ```ts
@@ -189,11 +191,15 @@ pass and fail, so assert what always holds and record the rest as a finding.
    each actor, and it holds your arrange steps. See `src/app/authorization/context.ts`.
 3. Provide it as a fixture named `authorizationContext`. Playwright reads fixture names from source,
    so the name is fixed.
-4. Declare entries with `expandEntry`, combine them with `buildMatrix`, and generate the tests:
+4. Declare entries with `expandEntry`, combine them with `buildMatrix`, and generate the tests. A
+   small typed wrapper lets TypeScript infer each row's resource:
 
 ```ts
+type Entry<TResource> = MatrixEntry<Actor, ApiClient, MatrixContext, TResource>;
+const row = <TResource>(entry: Entry<TResource>) => expandEntry(entry);
+
 const rows = buildMatrix(
-  expandEntry({
+  row({
     name: 'GET /orders/{id}',
     arrange: (context) => context.order(),
     request: (client, order) => client.orders.getResponse(order.id),

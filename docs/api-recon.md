@@ -1,5 +1,7 @@
 # API reconnaissance (Phase 0)
 
+> **A snapshot from before the advanced suites were built.** It records what was known at the start. Proposed tests, row counts and the stack description have since changed: for example, a `worker` service now generates PDFs. For current behaviour see [api-testing.md](api-testing.md), and for findings see [api-findings.md](api-findings.md), which supersedes section 9.
+
 What local Toolshop actually does, as input to the advanced API layer. Nothing in `src/` or `tests/` changed for this phase.
 
 **Target:** the Docker Compose stack in this repo (Sprint 5 API image, pinned by digest), `TEST_ENV=local`, on 2026-11-05. **The hosted demo was not contacted**, so nothing here is a claim about it.

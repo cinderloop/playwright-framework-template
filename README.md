@@ -24,7 +24,7 @@ as a GitHub template for other applications.
 - **Advanced API layer (opt-in).** A data-driven authorization matrix, security-adjacent tests,
   OpenAPI drift checks, property-based tests, concurrency and async flows. See
   [docs/api-testing.md](docs/api-testing.md).
-- **Fast, self-cleaning setup.** Login goes through the API in a setup project, and per-test data
+- **Fast, self-cleaning setup.** Tests sign in through the API with a fresh token, and per-test data
   is created through the API and always deleted.
 - **Test layers:** UI, API, hybrid e2e (including a full checkout), network mocking and HAR
   replay, the Clock API, axe accessibility scans with a rule baseline, ARIA snapshots, and visual
@@ -81,7 +81,7 @@ src/core/        reusable framework code, knows nothing about Toolshop (lint-enf
   reporting/     flaky/quarantine summary reporter
   fixtures/      base test: uniqueId, cleanup, apiRecorder
   utils/         pollUntil, checkProperty, markKnownIssue, localOnly, cleanup queue, ...
-  config/ auth/ data/
+  config/ data/
 src/app/         Toolshop-specific code
   api/           one client per resource (auth, products, categories, brands, carts, invoices, ...)
   schemas/       Zod response schemas; types are inferred from them
@@ -90,7 +90,7 @@ src/app/         Toolshop-specific code
   contract/      the operations the drift check samples, and the reviewed spec hash
   pages/ components/ fixtures/ config/ auth/ a11y/
 tests/
-  setup/         health check and per-role auth (storage state via the API)
+  setup/         health check
   api/           API tests (no browser)
   api/advanced/  opt-in, local-only: authorization, security, properties, concurrency, async
   contract/      OpenAPI drift check
@@ -115,7 +115,7 @@ together.
 | `tests/api`                  | `api` (no browser)                  | 30    | Auth, products, categories, brands, cart, invoices: happy paths, 422/409 validation, 401/403, 404s, pagination                                                                 |
 | `tests/api/advanced`         | `api` (no browser), local only      | 199   | Authorization matrix (124 rows), mass assignment, sensitive data, tokens, account security, rate limiting, error format, property-based, concurrency, idempotency, async flows |
 | `tests/contract`             | `contract` (no browser), local only | 2     | OpenAPI spec fingerprint; 39 live responses compared with the spec and the framework's schemas                                                                                 |
-| `src/core/**/*.unit.test.ts` | Vitest                              | 139   | Pure core logic: redaction, recording, matrix expansion, schema comparison                                                                                                     |
+| `src/core/**/*.unit.test.ts` | Vitest                              | 150   | Pure core logic: redaction, recording, matrix expansion, schema comparison                                                                                                     |
 | `tests/ui`                   | every browser project               | 23    | Browsing, search, filters, cart, login, role access, contact form; mocked API failures, HAR replay, Clock API                                                                  |
 | `tests/e2e`                  | every browser project               | 4     | API-created data verified in the UI, including a full checkout by a newly registered customer                                                                                  |
 | `tests/a11y`                 | `a11y` (Chromium)                   | 10    | axe-core WCAG 2.1 AA scans of six pages against a rule baseline; ARIA snapshots of key components                                                                              |
@@ -192,8 +192,7 @@ to reject card expiry dates before the current month.
 ## Running subsets
 
 Specs are tagged with the `tag` option: `@smoke`, `@regression`, `@api`, `@api-advanced`,
-`@contract`, `@a11y`, `@visual` and `@quarantine`. The health and auth setup tests are untagged and always run first as project
-dependencies.
+`@contract`, `@a11y`, `@visual` and `@quarantine`. The health check is untagged and always runs first, as a project dependency.
 
 | Script                                    | Purpose                                                                 |
 | ----------------------------------------- | ----------------------------------------------------------------------- |
@@ -306,7 +305,7 @@ invalid or missing value stops the run before any browser starts.
 - [AI-assisted testing](docs/ai-assisted-testing.md): the Playwright planner, generator and healer
   agents, what they produced, and what review changed.
 - [Decisions](docs/decisions/): ADRs for fixtures, API auth, Zod, Docker visual baselines, Toolshop
-  in Compose, Renovate and the advanced API layer.
+  in Compose, Renovate, the advanced API layer and signing in per test.
 - [Changelog](CHANGELOG.md)
 
 ## License

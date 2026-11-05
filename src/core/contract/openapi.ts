@@ -18,10 +18,16 @@ export interface ObservedResponse {
   /** The path as the spec writes it, e.g. `/products/{productId}`. */
   path: string;
   status: number;
+  /** The parsed JSON body, or `undefined` if the response had none. */
   body: unknown;
 }
 
-export type DriftKind = FieldDrift['kind'] | 'undocumented-status' | 'undocumented-operation';
+export type DriftKind =
+  | FieldDrift['kind']
+  | 'undocumented-status'
+  | 'undocumented-operation'
+  | 'undocumented-body'
+  | 'missing-body';
 
 export interface Drift {
   kind: DriftKind;
@@ -74,7 +80,8 @@ export function compareOperation(spec: OpenApiSpec, observed: ObservedResponse):
     return { ...summary, drift: [{ kind: 'undocumented-operation', path: '-', detail }] };
   }
 
-  const documented = responses[String(status)] ?? responses.default;
+  const statusRange = `${String(Math.floor(status / 100))}XX`;
+  const documented = responses[String(status)] ?? responses[statusRange] ?? responses.default;
   if (!documented) {
     const listed = Object.keys(responses).join(', ');
     const detail = `${String(status)} is not documented (documented: ${listed})`;
@@ -83,7 +90,15 @@ export function compareOperation(spec: OpenApiSpec, observed: ObservedResponse):
 
   const response = documented.$ref ? (lookUp(spec, documented.$ref) as ResponseObject) : documented;
   const schema = response.content?.['application/json']?.schema;
-  if (!schema || body === undefined) return { ...summary, drift: [] };
+  if (!schema && body === undefined) return { ...summary, drift: [] };
+  if (!schema) {
+    const detail = 'the response has a JSON body, but the spec documents none';
+    return { ...summary, drift: [{ kind: 'undocumented-body', path: '-', detail }] };
+  }
+  if (body === undefined) {
+    const detail = 'the spec documents a JSON body, but the response has none';
+    return { ...summary, drift: [{ kind: 'missing-body', path: '-', detail }] };
+  }
 
   return {
     ...summary,

@@ -90,7 +90,7 @@ export class ToolshopAuthorizationContext implements AuthorizationContext<
 
   async favorite(): Promise<OwnedFavorite> {
     const owner = await this.owner();
-    const favorite = await owner.api.favorites.create(await this.seededProductId());
+    const favorite = await owner.api.favorites.create(await this.deps.testData.seededProductId());
     return { owner, favorite };
   }
 
@@ -98,12 +98,5 @@ export class ToolshopAuthorizationContext implements AuthorizationContext<
     const owner = await this.owner();
     const message = await owner.api.messages.create(buildMessage());
     return { owner, message };
-  }
-
-  private async seededProductId(): Promise<string> {
-    const { data } = await this.deps.api.products.list();
-    const [product] = data;
-    if (!product) throw new Error('The catalog is empty; has Toolshop been seeded?');
-    return product.id;
   }
 }

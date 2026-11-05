@@ -1,4 +1,4 @@
-export { buildMatrix, expandEntry, isExplainedByKnownIssue } from './matrix';
+export { buildMatrix, expandEntry, isAssertionFailure } from './matrix';
 export type {
   AuthorizationContext,
   AuthorizationRow,

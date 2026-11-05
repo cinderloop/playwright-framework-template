@@ -17,7 +17,7 @@ Delete these:
 | `docker-compose.yml`, `docker/`                                    | The Toolshop stack                                                    |
 | `CHANGELOG.md` entries                                             | Start your own `[Unreleased]` section                                 |
 
-Keep `tests/setup` (rewrite its contents), `tests/agents/seed.spec.ts` (update it in step 7),
+Keep `tests/setup` (update its health check), `tests/agents/seed.spec.ts` (update it in step 7),
 `src/core`, the configs, the workflows and `docs/decisions` (they explain why things are the way
 they are).
 
@@ -143,14 +143,14 @@ Repeated UI parts (nav bars, cards, table rows) go in `src/app/components`.
 
 1. Add the role's credentials to the config schema (`users: { admin, viewer }`) and to
    `.env.example`.
-2. Add the role to `roles` in `src/app/config/index.ts`. `tests/setup/auth.setup.ts` then creates
-   `.auth/<role>.json` for it.
-3. Make the auth setup produce a session for your app. If it keeps a token in `localStorage`, use
-   `localStorageState(origin, { key: token })` as Toolshop does. If it uses cookies, save
-   `request.storageState()` after an API login instead.
-4. Use it in a spec with `test.use({ storageState: authFile('viewer') })`, if your sessions outlast
-   a full run. If they are short, sign in per test with `signInWithToken` instead (ADR 0002). For
-   API calls as that role, add a fixture like `adminApi` in `src/app/fixtures/api.fixture.ts`.
+2. Add the role to `roles` in `src/app/config/index.ts`.
+3. If your app does not keep a token in `localStorage`, change `signInWithToken` in
+   `src/app/auth/index.ts`. For cookies, use `context.addCookies` instead.
+4. Sign in with `test.beforeEach(({ signInAs }) => signInAs('viewer'))`. For API calls as that role,
+   add a fixture like `adminApi` in `src/app/fixtures/api.fixture.ts`.
+
+If your sessions outlast a full run, a setup project with `storageState` saves the login per test.
+ADR 0002 records how that worked here, and ADR 0015 why it was replaced.
 
 ## 6. Point CI at your app
 

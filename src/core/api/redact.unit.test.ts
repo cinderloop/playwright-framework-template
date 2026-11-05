@@ -130,6 +130,14 @@ describe('text', () => {
     expect(redactor.text(String.raw`"password":"a\"b c"`)).toBe(`"password":${REDACTED}`);
   });
 
+  it('stays fast on a very long run of word characters', () => {
+    const started = performance.now();
+
+    redactor.text('A'.repeat(200_000));
+
+    expect(performance.now() - started).toBeLessThan(1_000);
+  });
+
   it('matches separators a name is written with', () => {
     expect(redactor.text('api_key=abc api-key=def')).toBe(
       `api_key=${REDACTED} api-key=${REDACTED}`,

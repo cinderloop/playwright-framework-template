@@ -181,6 +181,27 @@ describe('BaseApiClient recording', () => {
     await expect(client.call('/products')).resolves.toBe(response);
   });
 
+  it('redacts every value of a sensitive list in a status error', async () => {
+    const client = clientFor(() => Promise.resolve(fakeResponse('')));
+    const response = fakeResponse('{"tokens":["first-secret","second-secret"]}');
+
+    const error = await client.check(response, 201).catch((caught: unknown) => caught);
+
+    expect(String(error)).not.toContain('second-secret');
+  });
+
+  it('redacts the query string in a status error', async () => {
+    const client = clientFor(() => Promise.resolve(fakeResponse('')));
+    const response = {
+      ...fakeResponse('{}'),
+      url: () => 'https://api.test/login?token=s3cret-value',
+    } as unknown as APIResponse;
+
+    const error = await client.check(response, 201).catch((caught: unknown) => caught);
+
+    expect(String(error)).not.toContain('s3cret-value');
+  });
+
   it('redacts the body quoted in a status error', async () => {
     const client = clientFor(() => Promise.resolve(fakeResponse('')));
     const response = fakeResponse('{"access_token":"s3cret-value"}');

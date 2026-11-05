@@ -39,9 +39,13 @@ async function profileUnchanged({ resource: owner }: { resource: NewCustomer }):
   expect(profile.address.street).toBe(owner.user.address.street);
 }
 
-/** The body must not mention the resource, whatever the status. */
+/**
+ * The body must not mention the resource, whatever the status. It compares a boolean
+ * so that a real leak does not print someone else's data into the report.
+ */
 async function expectNotRevealed(response: APIResponse, id: string): Promise<void> {
-  expect(await response.text()).not.toContain(id);
+  const revealed = (await response.text()).includes(id);
+  expect(revealed, `The response reveals ${id}`).toBe(false);
 }
 
 /** The request was refused: an error, and no data for the requested field. */

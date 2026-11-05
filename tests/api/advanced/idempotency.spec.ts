@@ -3,8 +3,8 @@ import { config } from '@app/config';
 import { buildBrand } from '@app/data';
 import { localOnly } from '@core/utils';
 
-// A repeated DELETE should not fail differently or do more; a repeated PUT with the
-// same body should leave the same state.
+// Idempotent means the state ends up the same, not that the responses match. So a
+// second DELETE may answer 404, and a repeated PUT must leave what the first one left.
 test.describe('Idempotency', { tag: ['@api', '@api-advanced'] }, () => {
   localOnly(config.environment);
 
@@ -55,7 +55,7 @@ test.describe('Idempotency', { tag: ['@api', '@api-advanced'] }, () => {
 
   test('repeating a quantity update leaves the same state', async ({ testData, api }) => {
     const product = await testData.product();
-    const cartId = await api.carts.create();
+    const cartId = await testData.cart();
     await api.carts.addItem(cartId, product.id, 1);
 
     await api.carts.updateQuantity(cartId, product.id, 4);

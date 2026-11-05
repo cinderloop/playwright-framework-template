@@ -28,23 +28,25 @@ export async function pollUntil<TValue>(
   return test.step(
     `poll: ${description}`,
     async () => {
-      const state = { attempts: 0, probing: false, last: undefined as TValue | undefined };
+      const state: { attempts: number; last?: TValue; thrown?: { error: unknown } } = {
+        attempts: 0,
+      };
+      const attempt = async (): Promise<boolean> => {
+        state.attempts += 1;
+        try {
+          state.last = await probe();
+          return until(state.last);
+        } catch (error) {
+          state.thrown = { error };
+          throw error;
+        }
+      };
+
       try {
-        await expect
-          .poll(
-            async () => {
-              state.attempts += 1;
-              state.probing = true;
-              state.last = await probe();
-              state.probing = false;
-              return until(state.last);
-            },
-            { timeout, intervals },
-          )
-          .toBe(true);
+        await expect.poll(attempt, { timeout, intervals }).toBe(true);
       } catch (error) {
-        // A probe that threw has not timed out, so keep its own error.
-        if (state.probing) throw error;
+        // An error from the probe or the check has not timed out, so keep it as it is.
+        if (state.thrown) throw state.thrown.error;
         const seen = JSON.stringify(defaultRedactor.body(state.last));
         throw new Error(
           `Timed out after ${String(timeout)}ms and ${String(state.attempts)} attempt(s) waiting for ${description}. Last value: ${seen}`,
