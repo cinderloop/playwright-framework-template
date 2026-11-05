@@ -54,6 +54,11 @@ services:
   worker:
     <<: *laravel
     environment: *laravel-environment
+    # Docker fills the empty shared volume from the image on first mount. Two
+    # containers doing that at once fail with "failed to mkdir", so this one waits.
+    depends_on:
+      laravel-api:
+        condition: service_started
     command:
       - sh
       - -c
