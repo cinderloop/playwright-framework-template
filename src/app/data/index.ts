@@ -3,6 +3,7 @@ export {
   buildCategory,
   buildContactMessage,
   buildCustomer,
+  buildMessage,
   buildProduct,
 } from './builders';
 export type { ProductReferences } from './builders';

@@ -5,6 +5,7 @@ import type { ContactMessageInput } from '@app/pages';
 import type {
   BrandInput,
   CategoryInput,
+  MessageInput,
   PostcodeLookup,
   ProductInput,
   RegistrationInput,
@@ -81,6 +82,14 @@ export function buildCustomer(
     ...overrides,
   };
 }
+
+/** A valid `POST /messages` body. The API's limit is 250 characters. */
+export const buildMessage = defineFactory<MessageInput>(() => ({
+  name: faker.person.fullName(),
+  email: faker.internet.email({ provider: 'example.com' }).toLowerCase(),
+  subject: 'webmaster',
+  message: `${faker.lorem.sentence()} ${uniqueSuffix()}`,
+}));
 
 /** A valid guest contact form entry; the message is over the 50-character minimum. */
 export const buildContactMessage = defineFactory<ContactMessageInput>(() => ({

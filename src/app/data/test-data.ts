@@ -82,13 +82,18 @@ export class TestData {
     const address = await this.deps.api.addresses.lookup('US', faker.location.zipCode('#####'));
     const input = buildCustomer(address, overrides);
     const user = await this.deps.api.auth.register(input);
-    this.deleteLater(`customer ${user.email}`, () =>
-      this.deps.adminApi.users.deleteResponse(user.id),
-    );
+    this.deleteLater(`customer ${user.email}`, () => this.deleteCustomer(user.id));
 
     const credentials = { email: input.email, password: input.password };
     const { access_token: token } = await this.deps.api.auth.login(credentials);
     return { user, credentials, token, api: this.deps.apiWithToken(token) };
+  }
+
+  /** Deleting a user who is already gone answers 500, not 404 (F-24), so look first. */
+  private async deleteCustomer(userId: string): Promise<APIResponse> {
+    const { users } = this.deps.adminApi;
+    const existing = await users.getResponse(userId);
+    return existing.status() === 404 ? existing : users.deleteResponse(userId);
   }
 
   /**

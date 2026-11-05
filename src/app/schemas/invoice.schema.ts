@@ -17,6 +17,14 @@ const billingAddress = {
   billing_postal_code: z.string().nullable(),
 };
 
+export const invoiceStatuses = [
+  'AWAITING_FULFILLMENT',
+  'ON_HOLD',
+  'AWAITING_SHIPMENT',
+  'SHIPPED',
+  'COMPLETED',
+] as const;
+
 export const invoiceNumberSchema = z.string().regex(/^INV-\d+$/);
 
 export const createdInvoiceSchema = z.object({
@@ -55,6 +63,7 @@ export const invoicePageSchema = paginated(invoiceSchema);
 export type Invoice = z.infer<typeof invoiceSchema>;
 export type CreatedInvoice = z.infer<typeof createdInvoiceSchema>;
 export type PaymentMethod = (typeof paymentMethods)[number];
+export type InvoiceStatus = (typeof invoiceStatuses)[number];
 
 export interface InvoiceInput {
   cart_id: string;

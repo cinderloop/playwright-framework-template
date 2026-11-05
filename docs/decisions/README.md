@@ -13,3 +13,5 @@ follows from it. A new decision gets the next number. A reversed decision is mar
 | [0005](0005-toolshop-in-ci-via-docker-compose.md) | Toolshop in CI via Docker Compose             |
 | [0006](0006-renovate-for-dependency-updates.md)   | Renovate rather than Dependabot               |
 | [0007](0007-vitest-for-core-unit-tests.md)        | Vitest for pure core functions                |
+| [0008](0008-authorization-matrix.md)              | Authorization rules as a data-driven matrix   |
+| [0009](0009-403-or-404-for-cross-user-access.md)  | Accept 403 or 404 for cross-user access       |

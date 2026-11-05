@@ -34,6 +34,14 @@ export type User = z.infer<typeof userSchema>;
 export type Address = z.infer<typeof addressSchema>;
 export type PostcodeLookup = z.infer<typeof postcodeLookupSchema>;
 
+/** `PUT /users/{id}`. The address needs at least a street, city and country. */
+export interface ProfileUpdate {
+  first_name: string;
+  last_name: string;
+  email: string;
+  address: { street: string; city: string; country: string };
+}
+
 export interface RegistrationInput {
   first_name: string;
   last_name: string;
