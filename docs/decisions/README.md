@@ -12,3 +12,4 @@ follows from it. A new decision gets the next number. A reversed decision is mar
 | [0004](0004-docker-based-visual-baselines.md)     | Visual baselines only in the Playwright image |
 | [0005](0005-toolshop-in-ci-via-docker-compose.md) | Toolshop in CI via Docker Compose             |
 | [0006](0006-renovate-for-dependency-updates.md)   | Renovate rather than Dependabot               |
+| [0007](0007-vitest-for-core-unit-tests.md)        | Vitest for pure core functions                |

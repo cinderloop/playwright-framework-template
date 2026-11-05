@@ -1,4 +1,5 @@
 import { test as base } from '@playwright/test';
+import { ApiRecorder, type ApiRecorderOptions } from '../api';
 import { CleanupQueue, uniqueSuffix } from '../utils';
 
 export type Cleanup = Pick<CleanupQueue, 'add'>;
@@ -12,6 +13,13 @@ export interface CoreFixtures {
    * fixture that depends on those, so they are still alive at teardown.
    */
   cleanup: Cleanup;
+  /** Extra sensitive names and size limits for `apiRecorder`. */
+  apiRecorderOptions: ApiRecorderOptions;
+  /**
+   * Redacted log of this test's API calls, for clients created with it. It is
+   * attached to the report only when the test fails or is being retried.
+   */
+  apiRecorder: ApiRecorder;
 }
 
 /**
@@ -27,5 +35,19 @@ export const test = base.extend<CoreFixtures>({
     const queue = new CleanupQueue();
     await use(queue);
     await queue.run();
+  },
+
+  apiRecorderOptions: [{}, { option: true }],
+
+  apiRecorder: async ({ apiRecorderOptions }, use, testInfo) => {
+    const recorder = new ApiRecorder(apiRecorderOptions);
+    await use(recorder);
+    const failed = testInfo.status !== testInfo.expectedStatus;
+    if (recorder.size > 0 && (failed || testInfo.retry > 0)) {
+      await testInfo.attach('api-exchanges', {
+        body: JSON.stringify(recorder, null, 2),
+        contentType: 'application/json',
+      });
+    }
   },
 });

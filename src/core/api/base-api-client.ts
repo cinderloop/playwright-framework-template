@@ -1,5 +1,7 @@
 import type { APIRequestContext, APIResponse } from '@playwright/test';
 import { z } from 'zod';
+import type { ApiRecorder } from './api-recorder';
+import { defaultRedactor } from './redact';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -8,6 +10,8 @@ export interface ApiClientOptions {
   baseUrl: string;
   /** Bearer token sent on every request; omit for anonymous calls. */
   token?: string | undefined;
+  /** Logs every call for the failure report; omit to record nothing. */
+  recorder?: ApiRecorder | undefined;
 }
 
 export interface RequestOptions {
@@ -44,7 +48,7 @@ export abstract class BaseApiClient {
     protected readonly options: ApiClientOptions,
   ) {}
 
-  protected send(
+  protected async send(
     method: HttpMethod,
     path: string,
     options: RequestOptions = {},
@@ -53,12 +57,37 @@ export abstract class BaseApiClient {
     if (this.options.token) {
       headers.Authorization = `Bearer ${this.options.token}`;
     }
-    return this.request.fetch(new URL(path, this.options.baseUrl).href, {
+    const url = new URL(path, this.options.baseUrl).href;
+    const fetchOptions = {
       method,
       headers,
       ...(options.params ? { params: options.params } : {}),
       ...(options.data === undefined ? {} : { data: options.data }),
+    };
+
+    const { recorder } = this.options;
+    if (!recorder) {
+      return this.request.fetch(url, fetchOptions);
+    }
+
+    const startedAt = new Date();
+    const details = () => ({
+      method,
+      url: withQuery(url, options.params),
+      headers,
+      data: options.data,
+      startedAt,
+      durationMs: Date.now() - startedAt.getTime(),
     });
+    let response: APIResponse;
+    try {
+      response = await this.request.fetch(url, fetchOptions);
+    } catch (error) {
+      recorder.recordFailure(details(), error);
+      throw error;
+    }
+    await recorder.recordResponse(details(), response);
+    return response;
   }
 
   /** Asserts the status and parses the JSON body with `schema`. */
@@ -82,13 +111,22 @@ export abstract class BaseApiClient {
   protected async expectStatus(response: APIResponse, expectedStatus: number): Promise<void> {
     if (response.status() !== expectedStatus) {
       const body = await response.text();
+      const redactor = this.options.recorder?.redactor ?? defaultRedactor;
       throw new ApiError(
-        `${requestLabel(response)} returned ${String(response.status())}, expected ${String(expectedStatus)}: ${body.slice(0, 500)}`,
+        `${requestLabel(response)} returned ${String(response.status())}, expected ${String(expectedStatus)}: ${redactor.text(body).slice(0, 500)}`,
         response.status(),
         body,
       );
     }
   }
+}
+
+function withQuery(url: string, params: RequestOptions['params']): string {
+  const result = new URL(url);
+  for (const [name, value] of Object.entries(params ?? {})) {
+    result.searchParams.set(name, String(value));
+  }
+  return result.href;
 }
 
 function requestLabel(response: APIResponse): string {

@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   static:
-    name: Lint, typecheck, boundary
+    name: Lint, typecheck, boundary, unit tests
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -38,6 +38,9 @@ jobs:
 
       - name: Core/app boundary
         run: npm run lint:boundary && npm run typecheck:core
+
+      - name: Core unit tests
+        run: npm run test:unit
 
       - name: Playwright Docker image matches @playwright/test
         run: npm run check:docker-image

@@ -49,7 +49,14 @@ export default defineConfig({
   projects: [
     { name: 'health', testMatch: /health\.setup\.ts/ },
     { name: 'setup', testMatch: /auth\.setup\.ts/, dependencies: ['health'] },
-    { name: 'api', testDir: './tests/api', dependencies: ['health'] },
+    {
+      name: 'api',
+      testDir: './tests/api',
+      // Traces hold raw requests, so they would put passwords and tokens in the
+      // report. The redacted `api-exchanges` attachment replaces them here.
+      use: { trace: 'off' },
+      dependencies: ['health'],
+    },
     {
       // axe results and ARIA trees are checked once, on desktop Chromium.
       name: 'a11y',

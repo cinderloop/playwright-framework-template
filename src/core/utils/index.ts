@@ -1,6 +1,10 @@
 export { CleanupQueue } from './cleanup-queue';
 export type { CleanupTask } from './cleanup-queue';
+export { environmentSkipReason } from './environment';
+export { localOnly, skipUnless } from './env-guard';
 export { endpoint, holdRequests } from './network';
 export type { HeldRequests } from './network';
+export { pollUntil } from './poll';
+export type { PollOptions } from './poll';
 export { isRunningInPlaywrightImage } from './runtime';
 export { uniqueSuffix } from './unique';
