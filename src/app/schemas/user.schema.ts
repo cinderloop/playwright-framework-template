@@ -20,6 +20,14 @@ export const userSchema = z.object({
   address: addressSchema,
 });
 
+/** What an admin sees: these extra fields are hidden from customers. */
+export const adminUserSchema = userSchema.extend({
+  role: z.string(),
+  enabled: z.boolean(),
+  failed_login_attempts: z.number().int().nullable(),
+  totp_enabled: z.boolean(),
+});
+
 /** `GET /postcode-lookup`: the address the API considers valid for a country + postcode. */
 export const postcodeLookupSchema = z.object({
   street: z.string(),
@@ -31,6 +39,7 @@ export const postcodeLookupSchema = z.object({
 });
 
 export type User = z.infer<typeof userSchema>;
+export type AdminUser = z.infer<typeof adminUserSchema>;
 export type Address = z.infer<typeof addressSchema>;
 export type PostcodeLookup = z.infer<typeof postcodeLookupSchema>;
 

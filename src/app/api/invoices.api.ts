@@ -8,16 +8,17 @@ import {
   type Invoice,
   type InvoiceInput,
   type InvoiceStatus,
+  type WithExtraFields,
 } from '@app/schemas';
 
 /** Orders. Every endpoint requires a customer (or admin) token. */
 export class InvoicesApi extends BaseApiClient {
-  async create(input: InvoiceInput): Promise<CreatedInvoice> {
-    return this.parse(
-      await this.send('POST', '/invoices', { data: input }),
-      createdInvoiceSchema,
-      201,
-    );
+  createResponse(input: WithExtraFields<InvoiceInput>): Promise<APIResponse> {
+    return this.send('POST', '/invoices', { data: input });
+  }
+
+  async create(input: WithExtraFields<InvoiceInput>): Promise<CreatedInvoice> {
+    return this.parse(await this.createResponse(input), createdInvoiceSchema, 201);
   }
 
   listResponse(page = 1): Promise<APIResponse> {
@@ -40,15 +41,24 @@ export class InvoicesApi extends BaseApiClient {
     return this.parse(await this.getResponse(invoiceId), invoiceSchema);
   }
 
-  updateResponse(invoiceId: string, input: InvoiceInput): Promise<APIResponse> {
+  updateResponse(invoiceId: string, input: WithExtraFields<InvoiceInput>): Promise<APIResponse> {
     return this.send('PUT', `/invoices/${invoiceId}`, { data: input });
   }
 
-  patchResponse(invoiceId: string, input: Partial<InvoiceInput>): Promise<APIResponse> {
+  patchResponse(
+    invoiceId: string,
+    input: WithExtraFields<Partial<InvoiceInput>>,
+  ): Promise<APIResponse> {
     return this.send('PATCH', `/invoices/${invoiceId}`, { data: input });
   }
 
-  updateStatusResponse(invoiceId: string, status: InvoiceStatus): Promise<APIResponse> {
-    return this.send('PUT', `/invoices/${invoiceId}/status`, { data: { status } });
+  updateStatusResponse(
+    invoiceId: string,
+    status: InvoiceStatus,
+    extraFields: Record<string, unknown> = {},
+  ): Promise<APIResponse> {
+    return this.send('PUT', `/invoices/${invoiceId}/status`, {
+      data: { ...extraFields, status },
+    });
   }
 }

@@ -75,29 +75,10 @@ export class ToolshopAuthorizationContext implements AuthorizationContext<
     }
   }
 
-  /**
-   * A completed checkout. It uses a seeded product because orders cannot be
-   * deleted, so a created product would be left behind by every row.
-   */
   async invoice(): Promise<OwnedInvoice> {
     const owner = await this.owner();
-    const productId = await this.seededProductId();
-    const cartId = await owner.api.carts.create();
-    await owner.api.carts.addItem(cartId, productId);
-
-    const { address } = owner.user;
-    const input: InvoiceInput = {
-      cart_id: cartId,
-      payment_method: 'cash-on-delivery',
-      payment_details: {},
-      billing_street: address.street ?? '',
-      billing_city: address.city ?? '',
-      billing_state: address.state ?? '',
-      billing_country: address.country ?? '',
-      billing_postal_code: address.postal_code ?? '',
-    };
-    const { id, invoice_number: invoiceNumber } = await owner.api.invoices.create(input);
-    return { owner, id, invoiceNumber, input };
+    const { invoice, input } = await this.deps.testData.order(owner);
+    return { owner, id: invoice.id, invoiceNumber: invoice.invoice_number, input };
   }
 
   async favorite(): Promise<OwnedFavorite> {

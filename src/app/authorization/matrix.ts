@@ -2,8 +2,8 @@ import type { APIResponse } from '@playwright/test';
 import { expect } from '@core/fixtures';
 import { buildMatrix, expandEntry, type KnownIssue, type MatrixEntry } from '@core/authorization';
 import { reportNames, type ToolshopApi } from '@app/api';
-import type { NewCustomer } from '@app/data';
-import { graphqlResponseSchema, type ProfileUpdate } from '@app/schemas';
+import { buildProfileUpdate, type NewCustomer } from '@app/data';
+import { graphqlResponseSchema } from '@app/schemas';
 import type { ToolshopActor, ToolshopAuthorizationContext } from './context';
 
 /**
@@ -33,15 +33,6 @@ const DENIED = [403, 404] as const;
 
 function issue(finding: string, description: string, observedStatus = 200): KnownIssue {
   return { finding, description, observedStatus };
-}
-
-function profileUpdate(owner: NewCustomer): ProfileUpdate {
-  return {
-    first_name: 'Changed',
-    last_name: owner.user.last_name,
-    email: owner.user.email,
-    address: { street: 'Changed Street', city: 'Changed City', country: 'NL' },
-  };
 }
 
 async function profileUnchanged({ resource: owner }: { resource: NewCustomer }): Promise<void> {
@@ -92,7 +83,8 @@ const users = [
   row({
     name: 'PUT /users/{id}',
     arrange: (context) => context.owner(),
-    request: (client, owner) => client.users.updateResponse(owner.user.id, profileUpdate(owner)),
+    request: (client, owner) =>
+      client.users.updateResponse(owner.user.id, buildProfileUpdate(owner.user)),
     expectations: {
       anonymous: 401,
       owner: 200,
@@ -103,7 +95,8 @@ const users = [
   row({
     name: 'PATCH /users/{id}',
     arrange: (context) => context.owner(),
-    request: (client, owner) => client.users.patchResponse(owner.user.id, profileUpdate(owner)),
+    request: (client, owner) =>
+      client.users.patchResponse(owner.user.id, buildProfileUpdate(owner.user)),
     expectations: {
       anonymous: 401,
       owner: 200,

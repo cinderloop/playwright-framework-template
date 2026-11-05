@@ -7,11 +7,14 @@ import type {
   Brand,
   BrandInput,
   CreatedCategory,
+  CreatedInvoice,
   CategoryInput,
+  InvoiceInput,
   Product,
   ProductInput,
   RegistrationInput,
   User,
+  WithExtraFields,
 } from '@app/schemas';
 import { buildBrand, buildCategory, buildCustomer, buildProduct } from './builders';
 
@@ -20,6 +23,16 @@ export interface NewCustomer {
   credentials: Credentials;
   token: string;
   api: ToolshopApi;
+}
+
+export interface RegisteredCustomer {
+  user: User;
+  input: RegistrationInput;
+}
+
+export interface PlacedOrder {
+  invoice: CreatedInvoice;
+  input: InvoiceInput;
 }
 
 interface TestDataDeps {
@@ -77,16 +90,63 @@ export class TestData {
     return product;
   }
 
-  /** Registers a new customer and signs them in through the API. */
-  async customer(overrides: Partial<RegistrationInput> = {}): Promise<NewCustomer> {
+  /** Registers a new customer without signing in, so account state stays as registered. */
+  async registered(
+    overrides: WithExtraFields<Partial<RegistrationInput>> = {},
+  ): Promise<RegisteredCustomer> {
     const address = await this.deps.api.addresses.lookup('US', faker.location.zipCode('#####'));
     const input = buildCustomer(address, overrides);
     const user = await this.deps.api.auth.register(input);
     this.deleteLater(`customer ${user.email}`, () => this.deleteCustomer(user.id));
+    return { user, input };
+  }
 
+  /** Registers a new customer and signs them in through the API. */
+  async customer(
+    overrides: WithExtraFields<Partial<RegistrationInput>> = {},
+  ): Promise<NewCustomer> {
+    const { user, input } = await this.registered(overrides);
     const credentials = { email: input.email, password: input.password };
     const { access_token: token } = await this.deps.api.auth.login(credentials);
     return { user, credentials, token, api: this.deps.apiWithToken(token) };
+  }
+
+  /**
+   * A valid checkout request with a filled cart. It uses a seeded product because
+   * orders cannot be deleted, so a created product would be left behind by each one.
+   */
+  async orderInput(
+    customer: NewCustomer,
+    overrides: WithExtraFields<Partial<InvoiceInput>> = {},
+  ): Promise<InvoiceInput> {
+    const { data } = await this.deps.api.products.list();
+    const [product] = data;
+    if (!product) throw new Error('The catalog is empty; has Toolshop been seeded?');
+
+    const cartId = await customer.api.carts.create();
+    await customer.api.carts.addItem(cartId, product.id);
+
+    const { address } = customer.user;
+    return {
+      cart_id: cartId,
+      payment_method: 'cash-on-delivery',
+      payment_details: {},
+      billing_street: address.street ?? '',
+      billing_city: address.city ?? '',
+      billing_state: address.state ?? '',
+      billing_country: address.country ?? '',
+      billing_postal_code: address.postal_code ?? '',
+      ...overrides,
+    };
+  }
+
+  /** A completed checkout. */
+  async order(
+    customer: NewCustomer,
+    overrides: WithExtraFields<Partial<InvoiceInput>> = {},
+  ): Promise<PlacedOrder> {
+    const input = await this.orderInput(customer, overrides);
+    return { invoice: await customer.api.invoices.create(input), input };
   }
 
   /** Deleting a user who is already gone answers 500, not 404 (F-24), so look first. */

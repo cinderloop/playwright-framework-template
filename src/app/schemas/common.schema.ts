@@ -38,4 +38,10 @@ export const errorMessageSchema = z.union([
   z.object({ error: z.string() }),
 ]);
 
+/** Every 4xx body Toolshop produces. There is no single shape, so this is a family. */
+export const errorResponseSchema = z.union([errorMessageSchema, validationErrorSchema]);
+
+/** A request body carrying fields beyond the documented ones, for mass assignment tests. */
+export type WithExtraFields<TInput> = TInput | (TInput & Record<string, unknown>);
+
 export type ValidationError = z.infer<typeof validationErrorSchema>;

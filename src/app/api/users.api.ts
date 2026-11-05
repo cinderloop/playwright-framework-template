@@ -1,6 +1,11 @@
 import type { APIResponse } from '@playwright/test';
 import { BaseApiClient } from '@core/api';
-import type { ProfileUpdate } from '@app/schemas';
+import {
+  adminUserSchema,
+  type AdminUser,
+  type ProfileUpdate,
+  type WithExtraFields,
+} from '@app/schemas';
 
 export class UsersApi extends BaseApiClient {
   /** Requires an admin token. */
@@ -16,11 +21,19 @@ export class UsersApi extends BaseApiClient {
     return this.send('GET', `/users/${userId}`);
   }
 
-  updateResponse(userId: string, input: ProfileUpdate): Promise<APIResponse> {
+  /** Requires an admin token: only admins see role and account state. */
+  async get(userId: string): Promise<AdminUser> {
+    return this.parse(await this.getResponse(userId), adminUserSchema);
+  }
+
+  updateResponse(userId: string, input: WithExtraFields<ProfileUpdate>): Promise<APIResponse> {
     return this.send('PUT', `/users/${userId}`, { data: input });
   }
 
-  patchResponse(userId: string, input: Partial<ProfileUpdate>): Promise<APIResponse> {
+  patchResponse(
+    userId: string,
+    input: WithExtraFields<Partial<ProfileUpdate>>,
+  ): Promise<APIResponse> {
     return this.send('PATCH', `/users/${userId}`, { data: input });
   }
 

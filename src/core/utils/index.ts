@@ -2,6 +2,7 @@ export { CleanupQueue } from './cleanup-queue';
 export type { CleanupTask } from './cleanup-queue';
 export { environmentSkipReason } from './environment';
 export { localOnly, skipUnless } from './env-guard';
+export { markKnownIssue } from './known-issue';
 export { endpoint, holdRequests } from './network';
 export type { HeldRequests } from './network';
 export { pollUntil } from './poll';

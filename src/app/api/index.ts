@@ -11,10 +11,11 @@ import { InvoicesApi } from './invoices.api';
 import { MessagesApi } from './messages.api';
 import { ProductSpecsApi } from './product-specs.api';
 import { ProductsApi } from './products.api';
+import { RawApi } from './raw.api';
 import { ReportsApi } from './reports.api';
 import { UsersApi } from './users.api';
 
-export { AUTH_TOKEN_STORAGE_KEY } from './auth.api';
+export { AUTH_TOKEN_STORAGE_KEY, RESET_PASSWORD } from './auth.api';
 export { reportNames } from './reports.api';
 export type { ReportName } from './reports.api';
 
@@ -32,6 +33,7 @@ export function createToolshopApi(request: APIRequestContext, options: ApiClient
     messages: new MessagesApi(request, options),
     products: new ProductsApi(request, options),
     productSpecs: new ProductSpecsApi(request, options),
+    raw: new RawApi(request, options),
     reports: new ReportsApi(request, options),
     users: new UsersApi(request, options),
   };

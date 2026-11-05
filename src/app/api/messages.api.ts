@@ -1,10 +1,16 @@
 import type { APIResponse } from '@playwright/test';
 import { BaseApiClient } from '@core/api';
-import { messageSchema, type Message, type MessageInput, type MessageStatus } from '@app/schemas';
+import {
+  messageSchema,
+  type Message,
+  type MessageInput,
+  type MessageStatus,
+  type WithExtraFields,
+} from '@app/schemas';
 
 /** Contact form messages. Sending is public; everything else requires a token. */
 export class MessagesApi extends BaseApiClient {
-  async create(input: MessageInput): Promise<Message> {
+  async create(input: WithExtraFields<MessageInput>): Promise<Message> {
     return this.parse(await this.send('POST', '/messages', { data: input }), messageSchema);
   }
 

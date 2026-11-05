@@ -28,7 +28,7 @@ export async function toMatchSchema(
   };
 }
 
-function isApiResponse(value: unknown): value is APIResponse {
+export function isApiResponse(value: unknown): value is APIResponse {
   return (
     typeof value === 'object' &&
     value !== null &&

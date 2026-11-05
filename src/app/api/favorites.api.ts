@@ -4,8 +4,10 @@ import { favoriteSchema, type Favorite } from '@app/schemas';
 
 /** A customer's saved products. Every endpoint requires a token. */
 export class FavoritesApi extends BaseApiClient {
-  async create(productId: string): Promise<Favorite> {
-    const response = await this.send('POST', '/favorites', { data: { product_id: productId } });
+  async create(productId: string, extraFields: Record<string, unknown> = {}): Promise<Favorite> {
+    const response = await this.send('POST', '/favorites', {
+      data: { ...extraFields, product_id: productId },
+    });
     return this.parse(response, favoriteSchema, 201);
   }
 
